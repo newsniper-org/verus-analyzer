@@ -121,6 +121,7 @@ pub enum SyntaxKind {
     WHILE_KW,
     YIELD_KW,
     ALIGN_KW,
+    ALLOCATES_KW,
     ANY_KW,
     ASM_KW,
     ASSERT_KW,
@@ -226,6 +227,7 @@ pub enum SyntaxKind {
     SHEBANG,
     WHITESPACE,
     ABI,
+    ALLOCATES_CLAUSE,
     ARG_LIST,
     ARRAY_EXPR,
     ARRAY_TYPE,
@@ -456,6 +458,7 @@ impl SyntaxKind {
             | INT_NUMBER
             | STRING
             | ABI
+            | ALLOCATES_CLAUSE
             | ARG_LIST
             | ARRAY_EXPR
             | ARRAY_TYPE
@@ -786,6 +789,7 @@ impl SyntaxKind {
             WHILE_KW => "while",
             YIELD_KW => "yield",
             ALIGN_KW => "align",
+            ALLOCATES_KW => "allocates",
             ANY_KW => "any",
             ASM_KW => "asm",
             ASSERT_KW => "assert",
@@ -944,6 +948,7 @@ impl SyntaxKind {
     pub fn is_contextual_keyword(self, edition: Edition) -> bool {
         match self {
             ALIGN_KW => true,
+            ALLOCATES_KW => true,
             ANY_KW => true,
             ASM_KW => true,
             ASSERT_KW => true,
@@ -1090,6 +1095,7 @@ impl SyntaxKind {
             GEN_KW if Edition::Edition2024 <= edition => true,
             TRY_KW if Edition::Edition2018 <= edition => true,
             ALIGN_KW => true,
+            ALLOCATES_KW => true,
             ANY_KW => true,
             ASM_KW => true,
             ASSERT_KW => true,
@@ -1310,6 +1316,7 @@ impl SyntaxKind {
     pub fn from_contextual_keyword(ident: &str, edition: Edition) -> Option<SyntaxKind> {
         let kw = match ident {
             "align" => ALIGN_KW,
+            "allocates" => ALLOCATES_KW,
             "any" => ANY_KW,
             "asm" => ASM_KW,
             "assert" => ASSERT_KW,
@@ -1548,6 +1555,7 @@ macro_rules ! T_ {
     [while] => { $ crate :: SyntaxKind :: WHILE_KW };
     [yield] => { $ crate :: SyntaxKind :: YIELD_KW };
     [align] => { $ crate :: SyntaxKind :: ALIGN_KW };
+    [allocates] => { $ crate :: SyntaxKind :: ALLOCATES_KW };
     [any] => { $ crate :: SyntaxKind :: ANY_KW };
     [asm] => { $ crate :: SyntaxKind :: ASM_KW };
     [assert] => { $ crate :: SyntaxKind :: ASSERT_KW };

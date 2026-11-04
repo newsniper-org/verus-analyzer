@@ -26,6 +26,7 @@ fn nth_at_contract_boundary(p: &Parser<'_>, n: usize) -> bool {
         || p.nth_at_contextual_kw(n, T![decreases])
         || p.nth_at_contextual_kw(n, T![opens_invariants])
         || p.nth_at_contextual_kw(n, T![no_unwind])
+        || p.nth_at_contextual_kw(n, T![allocates])
         || p.nth_at_contextual_kw(n, T![invariant])
         || p.nth_at_contextual_kw(n, T![invariant_except_break])
         || p.nth_at_contextual_kw(n, T![atomically])
@@ -388,6 +389,14 @@ pub(super) fn no_unwind(p: &mut Parser<'_>) -> CompletedMarker {
         expressions::expr_no_struct(p);
     }
     m.complete(p, NO_UNWIND_CLAUSE)
+}
+
+pub(super) fn allocates(p: &mut Parser<'_>) -> CompletedMarker {
+    let m = p.start();
+    expect_kw(p, T![allocates]);
+    expressions::expr_no_struct(p);
+    p.eat(T![,]);
+    m.complete(p, ALLOCATES_CLAUSE)
 }
 
 pub(super) fn atomic_spec(p: &mut Parser<'_>) -> CompletedMarker {

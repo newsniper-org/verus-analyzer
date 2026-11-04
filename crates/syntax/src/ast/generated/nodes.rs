@@ -16,6 +16,19 @@ impl Abi {
     #[inline]
     pub fn string_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![string]) }
 }
+pub struct AllocatesClause {
+    pub(crate) syntax: SyntaxNode,
+}
+impl AllocatesClause {
+    #[inline]
+    pub fn expr(&self) -> Option<Expr> { support::child(&self.syntax) }
+    #[inline]
+    pub fn comma_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![,]) }
+    #[inline]
+    pub fn allocates_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, T![allocates])
+    }
+}
 pub struct ArgList {
     pub(crate) syntax: SyntaxNode,
 }
@@ -346,6 +359,8 @@ impl ast::HasAttrs for AssumeSpecification {}
 impl ast::HasGenericParams for AssumeSpecification {}
 impl ast::HasVisibility for AssumeSpecification {}
 impl AssumeSpecification {
+    #[inline]
+    pub fn allocates_clause(&self) -> Option<AllocatesClause> { support::child(&self.syntax) }
     #[inline]
     pub fn ensures_clause(&self) -> Option<EnsuresClause> { support::child(&self.syntax) }
     #[inline]
@@ -720,6 +735,8 @@ pub struct ClosureExpr {
 impl ast::HasAttrs for ClosureExpr {}
 impl ClosureExpr {
     #[inline]
+    pub fn allocates_clause(&self) -> Option<AllocatesClause> { support::child(&self.syntax) }
+    #[inline]
     pub fn ensures_clause(&self) -> Option<EnsuresClause> { support::child(&self.syntax) }
     #[inline]
     pub fn for_binder(&self) -> Option<ForBinder> { support::child(&self.syntax) }
@@ -998,6 +1015,8 @@ impl ast::HasVisibility for Fn {}
 impl Fn {
     #[inline]
     pub fn abi(&self) -> Option<Abi> { support::child(&self.syntax) }
+    #[inline]
+    pub fn allocates_clause(&self) -> Option<AllocatesClause> { support::child(&self.syntax) }
     #[inline]
     pub fn atomic_spec(&self) -> Option<AtomicSpec> { support::child(&self.syntax) }
     #[inline]
@@ -3277,6 +3296,38 @@ impl Clone for Abi {
 impl fmt::Debug for Abi {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Abi").field("syntax", &self.syntax).finish()
+    }
+}
+impl AstNode for AllocatesClause {
+    #[inline]
+    fn kind() -> SyntaxKind
+    where
+        Self: Sized,
+    {
+        ALLOCATES_CLAUSE
+    }
+    #[inline]
+    fn can_cast(kind: SyntaxKind) -> bool { kind == ALLOCATES_CLAUSE }
+    #[inline]
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) { Some(Self { syntax }) } else { None }
+    }
+    #[inline]
+    fn syntax(&self) -> &SyntaxNode { &self.syntax }
+}
+impl hash::Hash for AllocatesClause {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) { self.syntax.hash(state); }
+}
+impl Eq for AllocatesClause {}
+impl PartialEq for AllocatesClause {
+    fn eq(&self, other: &Self) -> bool { self.syntax == other.syntax }
+}
+impl Clone for AllocatesClause {
+    fn clone(&self) -> Self { Self { syntax: self.syntax.clone() } }
+}
+impl fmt::Debug for AllocatesClause {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AllocatesClause").field("syntax", &self.syntax).finish()
     }
 }
 impl AstNode for ArgList {
@@ -12579,6 +12630,11 @@ impl std::fmt::Display for VariantDef {
     }
 }
 impl std::fmt::Display for Abi {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for AllocatesClause {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

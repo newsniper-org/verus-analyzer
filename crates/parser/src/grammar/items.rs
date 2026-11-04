@@ -588,6 +588,9 @@ fn parse_verus_contracts(p: &mut Parser<'_>) {
     if p.at_contextual_kw(T![no_unwind]) {
         verus::no_unwind(p);
     }
+    if p.at_contextual_kw(T![allocates]) {
+        verus::allocates(p);
+    }
 }
 
 fn assume_specification(p: &mut Parser<'_>, m: Marker) {

@@ -236,7 +236,7 @@ Fn =
  'default'? 'const'? 'async'? 'gen'? 'unsafe'? 'safe'? Abi? 'broadcast'? FnMode?
  'fn' Name GenericParamList? ParamList RetType? WhereClause?
  Prover? AtomicSpec? RequiresClause? RecommendsClause? EnsuresClause? DefaultEnsuresClause?
- ReturnsClause? SignatureDecreases? OpensInvariantsClause? NoUnwindClause?
+ ReturnsClause? SignatureDecreases? OpensInvariantsClause? NoUnwindClause? AllocatesClause?
  (body:BlockExpr | ';')
 
 Abi =
@@ -607,7 +607,7 @@ FieldExpr =
 ClosureExpr =
   Attr* ForBinder? 'const'? 'static'? 'async'? 'gen'? 'move'?
   ProofFnWithCharacteristics? 'forall'? 'exists'? 'choose'?
-  ParamList RetType? RequiresClause? EnsuresClause? Attr*
+  ParamList RetType? RequiresClause? EnsuresClause? AllocatesClause? Attr*
   body:Expr
 
 ForBinder =
@@ -937,6 +937,9 @@ OpensInvariantsClause =
 NoUnwindClause =
   'no_unwind' ('when' Expr)?
 
+AllocatesClause =
+  'allocates' Expr ','?
+
 SignatureDecreases =
   DecreasesClause ('when' Expr)? ('via' Expr)?
 
@@ -978,7 +981,7 @@ BroadcastGroup =
 AssumeSpecification =
   Attr* Visibility? 'assume_specification' GenericParamList? '[' Path ']'
   ParamList? RetType? WhereClause? RequiresClause? RecommendsClause? EnsuresClause?
-  ReturnsClause? SignatureDecreases? OpensInvariantsClause? NoUnwindClause? ';'
+  ReturnsClause? SignatureDecreases? OpensInvariantsClause? NoUnwindClause? AllocatesClause? ';'
 
 ProofFnCharacteristics =
   '[' fields:(Path (',' Path)* ','?) ']'

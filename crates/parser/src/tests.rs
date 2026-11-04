@@ -117,6 +117,64 @@ fn verus_macro_alias_is_a_transparent_item_wrapper() {
 }
 
 #[test]
+fn verus_allocates_clause_parses() {
+    // (source, number of ALLOCATES_CLAUSE nodes it should contain)
+    let cases = [
+        // a function, after the other clauses
+        (
+            r#"
+verus! {
+    fn f(n: usize) -> (r: u8)
+        requires n > 0,
+        ensures r == 0,
+        no_unwind
+        allocates n + 1
+    {
+        0
+    }
+}
+"#,
+            1,
+        ),
+        // a comma may follow the expression, as after `returns`
+        ("verus! { fn f() allocates 2, { } }", 1),
+        // `assume_specification`, with a complex bound
+        (
+            r#"
+verus! {
+    pub assume_specification<T>[ g::<T> ](x: T) -> (r: T)
+        ensures r == x,
+        allocates if true { 1int } else { 0int }
+    ;
+}
+"#,
+            1,
+        ),
+        // closures, with and without `ensures`
+        (
+            r#"
+verus! {
+    fn h() {
+        let a = |y: u8| -> (r: u8) allocates 1 { y };
+        let b = |y: u8| -> (r: u8) ensures r == y allocates 0 { y };
+    }
+}
+"#,
+            2,
+        ),
+        // `allocates` is contextual: it stays usable as an ordinary identifier
+        ("verus! { fn f(allocates: u8) -> u8 { allocates } }", 0),
+        ("verus! { fn f() { let allocates = 3; let _ = allocates + 1; } }", 0),
+    ];
+    for (source, expected) in cases {
+        let (actual, errors) = parse(TopEntryPoint::SourceFile, source, Edition::CURRENT);
+        assert!(!errors, "{source}\n{actual}");
+        let found = actual.lines().filter(|l| l.trim().starts_with("ALLOCATES_CLAUSE")).count();
+        assert_eq!(found, expected, "{source}\n{actual}");
+    }
+}
+
+#[test]
 fn verus_syntax_extensions_parse() {
     let cases = [
         r#"

@@ -9,6 +9,13 @@ pub struct Abi {
     pub cst: Option<super::nodes::Abi>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AllocatesClause {
+    pub allocates_token: bool,
+    pub expr: Box<Expr>,
+    pub comma_token: bool,
+    pub cst: Option<super::nodes::AllocatesClause>,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ArgList {
     pub l_paren_token: bool,
     pub args: Vec<Expr>,
@@ -221,6 +228,7 @@ pub struct AssumeSpecification {
     pub signature_decreases: Option<Box<SignatureDecreases>>,
     pub opens_invariants_clause: Option<Box<OpensInvariantsClause>>,
     pub no_unwind_clause: Option<Box<NoUnwindClause>>,
+    pub allocates_clause: Option<Box<AllocatesClause>>,
     pub semicolon_token: bool,
     pub cst: Option<super::nodes::AssumeSpecification>,
 }
@@ -439,6 +447,7 @@ pub struct ClosureExpr {
     pub ret_type: Option<Box<RetType>>,
     pub requires_clause: Option<Box<RequiresClause>>,
     pub ensures_clause: Option<Box<EnsuresClause>>,
+    pub allocates_clause: Option<Box<AllocatesClause>>,
     pub body: Box<Expr>,
     pub cst: Option<super::nodes::ClosureExpr>,
 }
@@ -624,6 +633,7 @@ pub struct Fn {
     pub signature_decreases: Option<Box<SignatureDecreases>>,
     pub opens_invariants_clause: Option<Box<OpensInvariantsClause>>,
     pub no_unwind_clause: Option<Box<NoUnwindClause>>,
+    pub allocates_clause: Option<Box<AllocatesClause>>,
     pub body: Option<Box<BlockExpr>>,
     pub semicolon_token: bool,
     pub cst: Option<super::nodes::Fn>,
@@ -2027,6 +2037,21 @@ impl TryFrom<super::nodes::Abi> for Abi {
         })
     }
 }
+impl TryFrom<super::nodes::AllocatesClause> for AllocatesClause {
+    type Error = String;
+    fn try_from(item: super::nodes::AllocatesClause) -> Result<Self, Self::Error> {
+        Ok(Self {
+            allocates_token: item.allocates_token().is_some(),
+            expr: Box::new(
+                item.expr()
+                    .ok_or(format!("{}", stringify!(expr)))
+                    .map(|it| Expr::try_from(it))??,
+            ),
+            comma_token: item.comma_token().is_some(),
+            cst: Some(item.clone()),
+        })
+    }
+}
 impl TryFrom<super::nodes::ArgList> for ArgList {
     type Error = String;
     fn try_from(item: super::nodes::ArgList) -> Result<Self, Self::Error> {
@@ -2513,6 +2538,10 @@ impl TryFrom<super::nodes::AssumeSpecification> for AssumeSpecification {
             },
             no_unwind_clause: match item.no_unwind_clause() {
                 Some(it) => Some(Box::new(NoUnwindClause::try_from(it)?)),
+                None => None,
+            },
+            allocates_clause: match item.allocates_clause() {
+                Some(it) => Some(Box::new(AllocatesClause::try_from(it)?)),
                 None => None,
             },
             semicolon_token: item.semicolon_token().is_some(),
@@ -3028,6 +3057,10 @@ impl TryFrom<super::nodes::ClosureExpr> for ClosureExpr {
                 Some(it) => Some(Box::new(EnsuresClause::try_from(it)?)),
                 None => None,
             },
+            allocates_clause: match item.allocates_clause() {
+                Some(it) => Some(Box::new(AllocatesClause::try_from(it)?)),
+                None => None,
+            },
             body: Box::new(
                 item.body()
                     .ok_or(format!("{}", stringify!(body)))
@@ -3512,6 +3545,10 @@ impl TryFrom<super::nodes::Fn> for Fn {
             },
             no_unwind_clause: match item.no_unwind_clause() {
                 Some(it) => Some(Box::new(NoUnwindClause::try_from(it)?)),
+                None => None,
+            },
+            allocates_clause: match item.allocates_clause() {
+                Some(it) => Some(Box::new(AllocatesClause::try_from(it)?)),
                 None => None,
             },
             body: match item.body() {
@@ -6739,6 +6776,26 @@ impl std::fmt::Display for Abi {
         write!(f, "{s}")
     }
 }
+impl std::fmt::Display for AllocatesClause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+        if self.allocates_token {
+            let mut tmp = stringify!(allocates_token).to_string();
+            tmp.truncate(tmp.len() - 6);
+            s.push_str(token_ascii(&tmp));
+            s.push_str(" ");
+        }
+        s.push_str(&self.expr.to_string());
+        s.push_str(" ");
+        if self.comma_token {
+            let mut tmp = stringify!(comma_token).to_string();
+            tmp.truncate(tmp.len() - 6);
+            s.push_str(token_ascii(&tmp));
+            s.push_str(" ");
+        }
+        write!(f, "{s}")
+    }
+}
 impl std::fmt::Display for ArrayExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = String::new();
@@ -7362,6 +7419,10 @@ impl std::fmt::Display for AssumeSpecification {
             s.push_str(" ");
         }
         if let Some(it) = &self.no_unwind_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.allocates_clause {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
@@ -8080,6 +8141,10 @@ impl std::fmt::Display for ClosureExpr {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
+        if let Some(it) = &self.allocates_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
         s.push_str(&self.body.to_string());
         s.push_str(" ");
         write!(f, "{s}")
@@ -8643,6 +8708,10 @@ impl std::fmt::Display for Fn {
             s.push_str(" ");
         }
         if let Some(it) = &self.no_unwind_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.allocates_clause {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
@@ -13199,6 +13268,14 @@ impl From<Variant> for VariantDef {
 impl Abi {
     pub fn new() -> Self { Self { extern_token: true, string_token: false, cst: None } }
 }
+impl AllocatesClause {
+    pub fn new<ET0>(expr: ET0) -> Self
+    where
+        ET0: Into<Expr>,
+    {
+        Self { allocates_token: true, expr: Box::new(expr.into()), comma_token: false, cst: None }
+    }
+}
 impl ArgList {
     pub fn new() -> Self {
         Self { l_paren_token: true, args: vec![], r_paren_token: true, cst: None }
@@ -13470,6 +13547,7 @@ impl AssumeSpecification {
             signature_decreases: None,
             opens_invariants_clause: None,
             no_unwind_clause: None,
+            allocates_clause: None,
             semicolon_token: true,
             cst: None,
         }
@@ -13731,6 +13809,7 @@ impl ClosureExpr {
             ret_type: None,
             requires_clause: None,
             ensures_clause: None,
+            allocates_clause: None,
             body: Box::new(body.into()),
             cst: None,
         }
@@ -13931,6 +14010,7 @@ impl Fn {
             signature_decreases: None,
             opens_invariants_clause: None,
             no_unwind_clause: None,
+            allocates_clause: None,
             body: None,
             semicolon_token: false,
             cst: None,
