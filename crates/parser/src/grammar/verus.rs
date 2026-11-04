@@ -273,7 +273,8 @@ pub(super) fn broadcast_group(p: &mut Parser<'_>, m: Marker) -> CompletedMarker 
     p.expect(T!['{']);
     while !p.at(EOF) && !p.at(T!['}']) {
         attributes::outer_attrs(p);
-        paths::use_path(p);
+        // a lemma of a generic type: `Seq::<_>::lemma_foo`
+        paths::expr_path(p);
         if !p.eat(T![,]) {
             break;
         }
@@ -286,7 +287,7 @@ pub(super) fn broadcast_use(p: &mut Parser<'_>, m: Marker) -> CompletedMarker {
     p.bump(T![use]);
     let braced = p.eat(T!['{']);
     while !p.at(EOF) && !p.at(T![;]) && !p.at(T!['}']) {
-        paths::use_path(p);
+        paths::expr_path(p);
         if !p.eat(T![,]) {
             break;
         }
@@ -415,6 +416,8 @@ pub(super) fn opens_invariants(p: &mut Parser<'_>) -> CompletedMarker {
             expressions::expr_no_struct(p);
         }
     }
+    // like the other clauses, it may be followed by a comma
+    p.eat(T![,]);
     m.complete(p, OPENS_INVARIANTS_CLAUSE)
 }
 

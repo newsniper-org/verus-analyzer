@@ -256,6 +256,14 @@ fn verus_syntax_catch_up_parses() {
             "verus! { spec fn f(x: E) -> bool { x matches E::A | E::B || true } }",
         ),
         (
+            "a comma after opens_invariants",
+            "verus! { proof fn f() ensures true, opens_invariants [a, b], no_unwind { } proof fn g() opens_invariants any, { } }",
+        ),
+        (
+            "generic paths in broadcast group and broadcast use",
+            "verus! { broadcast group g { a::b, Seq::<_>::lemma, } broadcast use {c, Seq::<int>::lemma}; }",
+        ),
+        (
             "a closure body block followed by a comma is not a clause",
             "verus! { fn t(v: Vec<u32>) { let _ = v.into_iter().position(|i| -> (ret: bool) ensures ret == (i < 10), {i < 10},); } }",
         ),
