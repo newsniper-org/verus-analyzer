@@ -75,6 +75,45 @@ impl<'t> Parser<'t> {
         self.inp.kind(self.pos + n)
     }
 
+    /// If the current token is `{`: the offset (from the current token) of the token that follows
+    /// its matching `}`, provided that token is of kind `kind`.
+    ///
+    /// Verus allows a clause expression to be a block followed by a comma, as in
+    /// `requires { &&& a &&& b },`. Together with `kind_at` and `contextual_kind_at` this lets a
+    /// caller look past the whole block, unlike `nth`, which looks at most three tokens ahead.
+    /// None of them moves the parser.
+    pub(crate) fn brace_block_end(&self, kind: SyntaxKind) -> Option<usize> {
+        if self.inp.kind(self.pos) != T!['{'] {
+            return None;
+        }
+        let mut depth = 0usize;
+        let mut idx = self.pos;
+        loop {
+            match self.inp.kind(idx) {
+                EOF => return None,
+                T!['{'] | T!['('] | T!['['] => depth += 1,
+                T!['}'] | T![')'] | T![']'] => {
+                    depth = depth.saturating_sub(1);
+                    if depth == 0 {
+                        return (self.inp.kind(idx + 1) == kind).then_some(idx + 1 - self.pos);
+                    }
+                }
+                _ => {}
+            }
+            idx += 1;
+        }
+    }
+
+    /// The kind of the token `offset` tokens ahead, with no limit on `offset` (unlike `nth`).
+    pub(crate) fn kind_at(&self, offset: usize) -> SyntaxKind {
+        self.inp.kind(self.pos + offset)
+    }
+
+    /// The contextual-keyword kind of the token `offset` tokens ahead.
+    pub(crate) fn contextual_kind_at(&self, offset: usize) -> SyntaxKind {
+        self.inp.contextual_kind(self.pos + offset)
+    }
+
     /// Checks if the current token is `kind`.
     pub(crate) fn at(&self, kind: SyntaxKind) -> bool {
         self.nth_at(0, kind)

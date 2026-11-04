@@ -692,9 +692,14 @@ fn closure_expr(p: &mut Parser<'_>) -> CompletedMarker {
     if p.at_contextual_kw(T![ensures]) {
         verus::ensures(p);
     }
+    if p.at_contextual_kw(T![opens_invariants]) {
+        verus::opens_invariants(p);
+    }
     if p.at_contextual_kw(T![allocates]) {
         verus::allocates(p);
     }
+    // `forall (|x| #![auto] body)`: quantifier attributes precede the body
+    attributes::inner_attrs(p);
     if has_ret_type {
         // test lambda_ret_block
         // fn main() { || -> i32 { 92 }(); }

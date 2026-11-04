@@ -21,9 +21,7 @@ pub struct AllocatesClause {
 }
 impl AllocatesClause {
     #[inline]
-    pub fn expr(&self) -> Option<Expr> { support::child(&self.syntax) }
-    #[inline]
-    pub fn comma_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![,]) }
+    pub fn exprs(&self) -> AstChildren<Expr> { support::children(&self.syntax) }
     #[inline]
     pub fn allocates_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, T![allocates])
@@ -740,6 +738,10 @@ impl ClosureExpr {
     pub fn ensures_clause(&self) -> Option<EnsuresClause> { support::child(&self.syntax) }
     #[inline]
     pub fn for_binder(&self) -> Option<ForBinder> { support::child(&self.syntax) }
+    #[inline]
+    pub fn opens_invariants_clause(&self) -> Option<OpensInvariantsClause> {
+        support::child(&self.syntax)
+    }
     #[inline]
     pub fn param_list(&self) -> Option<ParamList> { support::child(&self.syntax) }
     #[inline]

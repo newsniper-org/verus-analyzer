@@ -151,7 +151,13 @@ fn param(p: &mut Parser<'_>, m: Marker, flavor: Flavor) {
             {
                 p.eat_contextual_kw(T![tracked]);
             }
-            types::type_(p);
+            // like a fn pointer, an argument may be named: `proof_fn(tracked x: int)`
+            if (p.at(IDENT) || p.at(UNDERSCORE)) && p.nth(1) == T![:] && !p.nth_at(1, T![::]) {
+                patterns::pattern_single(p);
+                types::ascription(p);
+            } else {
+                types::type_(p);
+            }
         }
         // test closure_params
         // fn main() {
@@ -197,8 +203,10 @@ fn variadic_param(p: &mut Parser<'_>) -> bool {
 //     fn e(mut self) {}
 // }
 fn opt_self_param(p: &mut Parser<'_>, m: Marker) -> Result<(), Marker> {
+    // `tracked mut x: X` is an ordinary parameter; only `tracked [mut] self` and `tracked &..`
+    // start a self parameter
     let tracked = p.at_contextual_kw(T![tracked])
-        && matches!(p.nth(1), T![self] | T![mut] | T![&])
+        && (matches!(p.nth(1), T![self] | T![&]) || (p.nth(1) == T![mut] && p.nth(2) == T![self]))
         && p.eat_contextual_kw(T![tracked]);
     if p.at(T![self]) || p.at(T![mut]) && p.nth(1) == T![self] {
         p.eat(T![mut]);

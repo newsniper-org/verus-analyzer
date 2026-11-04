@@ -365,7 +365,18 @@ fn opt_item_without_modifiers(p: &mut Parser<'_>, m: Marker) -> Result<(), Marke
             macro_rules(p, m)
         }
 
-        T![const] if (la == IDENT || la == T![_] || la == T![mut]) => consts::konst(p, m),
+        // `const proof fn f() {}`: here `proof` is a function mode, not the name of a constant.
+        // (`const proof: u8 = 0;` is still a constant named `proof`.)
+        T![const]
+            if (la == IDENT || la == T![_] || la == T![mut])
+                && !(p.nth_at(2, T![fn])
+                    && (p.nth_at_contextual_kw(1, T![proof])
+                        || p.nth_at_contextual_kw(1, T![exec])
+                        || p.nth_at_contextual_kw(1, T![spec])
+                        || p.nth_at_contextual_kw(1, T![axiom]))) =>
+        {
+            consts::konst(p, m)
+        }
         T![static] if (la == IDENT || la == T![_] || la == T![mut]) => consts::static_(p, m),
 
         IDENT

@@ -47,6 +47,11 @@ const GENERIC_ARG_RECOVERY_SET: TokenSet = TokenSet::new(&[T![>], T![,]]);
 // test generic_arg
 // type T = S<i32, dyn T, fn()>;
 pub(crate) fn generic_arg(p: &mut Parser<'_>) -> bool {
+    // `Tracked<proof_fn[Once](x: int)>`: a `proof_fn` type, not a path with parenthesized args
+    if p.at_contextual_kw(T![proof_fn]) && matches!(p.nth(1), T!['('] | T!['['] | T![<]) {
+        type_arg(p);
+        return true;
+    }
     match p.current() {
         LIFETIME_IDENT if !p.nth_at(1, T![+]) => lifetime_arg(p),
         T!['{'] | T![true] | T![false] | T![-] => const_arg(p),

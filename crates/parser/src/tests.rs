@@ -136,8 +136,10 @@ verus! {
 "#,
             1,
         ),
-        // a comma may follow the expression, as after `returns`
+        // a comma may follow the expression, as after `ensures`
         ("verus! { fn f() allocates 2, { } }", 1),
+        // a list is a syntax-level match: only the macro insists on exactly one expression
+        ("verus! { fn f() allocates 1, 2 { } }", 1),
         // `assume_specification`, with a complex bound
         (
             r#"
@@ -171,6 +173,96 @@ verus! {
         assert!(!errors, "{source}\n{actual}");
         let found = actual.lines().filter(|l| l.trim().starts_with("ALLOCATES_CLAUSE")).count();
         assert_eq!(found, expected, "{source}\n{actual}");
+    }
+}
+
+/// Syntax that Verus accepts (it is in Verus's own test-suite) and that the parser must read
+/// without errors. Each entry names the feature.
+///
+/// Four entries already parsed before the parser was brought up to date with Verus; they guard
+/// the old behavior that the fixes sit next to: `global layout` with `align`, `tracked self`,
+/// a constant named `proof`, and a closure body block that is followed by a comma.
+#[test]
+fn verus_syntax_catch_up_parses() {
+    let cases = [
+        ("global layout with size only", "verus! { global layout usize is size == 8; }"),
+        (
+            "global layout with size and align",
+            "verus! { global layout S is size == 8, align == 4; }",
+        ),
+        ("tracked mut parameter", "verus! { proof fn f(tracked mut x: X, tracked y: Y) {} }"),
+        (
+            "tracked self parameters",
+            "verus! { impl S { proof fn a(tracked self) {} proof fn b(tracked mut self) {} proof fn c(tracked &self) {} } }",
+        ),
+        (
+            "const proof fn and const exec fn",
+            "verus! { const proof fn p() {} pub const exec fn q() {} }",
+        ),
+        (
+            "a constant named like a function mode",
+            "verus! { const proof: u8 = 0; const exec: u8 = 1; }",
+        ),
+        (
+            "proof_fn with named arguments",
+            "verus! { type T = proof_fn(i: int, tracked j: int) -> int; }",
+        ),
+        (
+            "proof_fn generics followed by options",
+            "verus! { type T = proof_fn<'a>[Once](tracked E<'a>) -> (); }",
+        ),
+        (
+            "proof_fn as a generic argument",
+            "verus! { fn t(Tracked(f): Tracked<proof_fn[OpensInvariants](i: int)>) {} }",
+        ),
+        (
+            "proof_fn returning a tracked never type",
+            "verus! { proof fn r(tracked f: proof_fn() -> tracked !) {} }",
+        ),
+        (
+            "opens_invariants on a closure",
+            "verus! { fn t() { let f = proof_fn|i: int| requires i == 10 ensures true opens_invariants [3int] { }; } }",
+        ),
+        (
+            "opens_invariants on a closure, followed by allocates",
+            "verus! { fn t() { let f = |i: int| -> (r: int) ensures true opens_invariants any allocates 0 { i }; } }",
+        ),
+        (
+            "a trigger attribute that carries its expressions",
+            "verus! { spec fn f() -> bool { forall|x: int| #[trigger a(x)] c(x) } }",
+        ),
+        (
+            "trigger expressions without commas",
+            "verus! { fn f() ensures #![trigger double(x as int) half(r as int)] r == 1, {} }",
+        ),
+        (
+            "auto trigger inside a parenthesized quantifier",
+            "verus! { spec fn f() -> bool { forall (|i: int, j: int| #![auto] i < j ==> g(i)) } }",
+        ),
+        (
+            "a clause that is a block expression followed by a comma",
+            "verus! { fn f(t: S) requires { &&& a &&& b }, ensures { c }, { } }",
+        ),
+        (
+            "the last clause of an atomically block",
+            "verus! { fn f() atomically (au) { (old: T) -> (new: T), ensures new == old, }, { } }",
+        ),
+        (
+            "matches followed by a logical or",
+            "verus! { proof fn f() { assert(!(E::A matches E::A || true ==> false)); } }",
+        ),
+        (
+            "matches with an or-pattern, then a logical or",
+            "verus! { spec fn f(x: E) -> bool { x matches E::A | E::B || true } }",
+        ),
+        (
+            "a closure body block followed by a comma is not a clause",
+            "verus! { fn t(v: Vec<u32>) { let _ = v.into_iter().position(|i| -> (ret: bool) ensures ret == (i < 10), {i < 10},); } }",
+        ),
+    ];
+    for (name, source) in cases {
+        let (actual, errors) = parse(TopEntryPoint::SourceFile, source, Edition::Edition2021);
+        assert!(!errors, "{name}\n{source}\n{actual}");
     }
 }
 

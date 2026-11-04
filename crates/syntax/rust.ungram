@@ -607,7 +607,7 @@ FieldExpr =
 ClosureExpr =
   Attr* ForBinder? 'const'? 'static'? 'async'? 'gen'? 'move'?
   ProofFnWithCharacteristics? 'forall'? 'exists'? 'choose'?
-  ParamList RetType? RequiresClause? EnsuresClause? AllocatesClause? Attr*
+  ParamList RetType? RequiresClause? EnsuresClause? OpensInvariantsClause? AllocatesClause? Attr*
   body:Expr
 
 ForBinder =
@@ -938,7 +938,7 @@ NoUnwindClause =
   'no_unwind' ('when' Expr)?
 
 AllocatesClause =
-  'allocates' Expr ','?
+  'allocates' (Expr (',' Expr)* ','?)?
 
 SignatureDecreases =
   DecreasesClause ('when' Expr)? ('via' Expr)?
@@ -968,7 +968,7 @@ VerusGlobal =
   Attr* 'global' (
     'size_of' Type size_eq:'==' value:'@int_number'
   | 'layout' Type 'is' 'size' size_eq:'==' value:'@int_number'
-    ',' 'align' align_eq:'==' align:'@int_number'
+    (',' 'align' align_eq:'==' align:'@int_number')?
   ) ';'
 
 BroadcastUse =
@@ -990,7 +990,7 @@ ProofFnWithCharacteristics =
   'proof_fn' ProofFnCharacteristics?
 
 ProofFnType =
-  'proof_fn' ProofFnCharacteristics? GenericParamList? ParamList? RetType?
+  'proof_fn' GenericParamList? ProofFnCharacteristics? ParamList? RetType?
 
 IsExpr =
   Attr* Expr 'is' Type

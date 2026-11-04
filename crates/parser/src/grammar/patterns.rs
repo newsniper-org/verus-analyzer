@@ -45,6 +45,12 @@ pub(super) fn pattern_top_r(p: &mut Parser<'_>, recovery_set: TokenSet) {
 //         [_ | _,] => (),
 //     }
 // }
+/// Is the next token the `|` of an or-pattern? A `|` that starts `||` or `|||` is not: in
+/// `x matches A || b` the `||` is Verus's logical or, which ends the pattern.
+fn at_or_pat_pipe(p: &Parser<'_>) -> bool {
+    p.at(T![|]) && !p.at(T![||]) && !p.at(T![|||])
+}
+
 /// Parses a pattern list separated by pipes `|`, with no leading `|`,using the
 /// given `recovery_set`.
 fn pattern_r(p: &mut Parser<'_>, recovery_set: TokenSet) {
@@ -53,11 +59,12 @@ fn pattern_r(p: &mut Parser<'_>, recovery_set: TokenSet) {
 
     pattern_single_r(p, recovery_set);
 
-    if !p.at(T![|]) && !has_leading_pipe {
+    if !at_or_pat_pipe(p) && !has_leading_pipe {
         m.abandon(p);
         return;
     }
-    while p.eat(T![|]) {
+    while at_or_pat_pipe(p) {
+        p.bump(T![|]);
         pattern_single_r(p, recovery_set);
     }
     m.complete(p, OR_PAT);

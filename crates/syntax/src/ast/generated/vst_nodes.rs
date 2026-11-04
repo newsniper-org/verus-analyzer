@@ -11,8 +11,7 @@ pub struct Abi {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AllocatesClause {
     pub allocates_token: bool,
-    pub expr: Box<Expr>,
-    pub comma_token: bool,
+    pub exprs: Vec<Expr>,
     pub cst: Option<super::nodes::AllocatesClause>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -447,6 +446,7 @@ pub struct ClosureExpr {
     pub ret_type: Option<Box<RetType>>,
     pub requires_clause: Option<Box<RequiresClause>>,
     pub ensures_clause: Option<Box<EnsuresClause>>,
+    pub opens_invariants_clause: Option<Box<OpensInvariantsClause>>,
     pub allocates_clause: Option<Box<AllocatesClause>>,
     pub body: Box<Expr>,
     pub cst: Option<super::nodes::ClosureExpr>,
@@ -1218,8 +1218,8 @@ pub struct ProofFnCharacteristics {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProofFnType {
     pub proof_fn_token: bool,
-    pub proof_fn_characteristics: Option<Box<ProofFnCharacteristics>>,
     pub generic_param_list: Option<Box<GenericParamList>>,
+    pub proof_fn_characteristics: Option<Box<ProofFnCharacteristics>>,
     pub param_list: Option<Box<ParamList>>,
     pub ret_type: Option<Box<RetType>>,
     pub cst: Option<super::nodes::ProofFnType>,
@@ -2042,12 +2042,11 @@ impl TryFrom<super::nodes::AllocatesClause> for AllocatesClause {
     fn try_from(item: super::nodes::AllocatesClause) -> Result<Self, Self::Error> {
         Ok(Self {
             allocates_token: item.allocates_token().is_some(),
-            expr: Box::new(
-                item.expr()
-                    .ok_or(format!("{}", stringify!(expr)))
-                    .map(|it| Expr::try_from(it))??,
-            ),
-            comma_token: item.comma_token().is_some(),
+            exprs: item
+                .exprs()
+                .into_iter()
+                .map(Expr::try_from)
+                .collect::<Result<Vec<Expr>, String>>()?,
             cst: Some(item.clone()),
         })
     }
@@ -3055,6 +3054,10 @@ impl TryFrom<super::nodes::ClosureExpr> for ClosureExpr {
             },
             ensures_clause: match item.ensures_clause() {
                 Some(it) => Some(Box::new(EnsuresClause::try_from(it)?)),
+                None => None,
+            },
+            opens_invariants_clause: match item.opens_invariants_clause() {
+                Some(it) => Some(Box::new(OpensInvariantsClause::try_from(it)?)),
                 None => None,
             },
             allocates_clause: match item.allocates_clause() {
@@ -4951,12 +4954,12 @@ impl TryFrom<super::nodes::ProofFnType> for ProofFnType {
     fn try_from(item: super::nodes::ProofFnType) -> Result<Self, Self::Error> {
         Ok(Self {
             proof_fn_token: item.proof_fn_token().is_some(),
-            proof_fn_characteristics: match item.proof_fn_characteristics() {
-                Some(it) => Some(Box::new(ProofFnCharacteristics::try_from(it)?)),
-                None => None,
-            },
             generic_param_list: match item.generic_param_list() {
                 Some(it) => Some(Box::new(GenericParamList::try_from(it)?)),
+                None => None,
+            },
+            proof_fn_characteristics: match item.proof_fn_characteristics() {
+                Some(it) => Some(Box::new(ProofFnCharacteristics::try_from(it)?)),
                 None => None,
             },
             param_list: match item.param_list() {
@@ -6785,14 +6788,7 @@ impl std::fmt::Display for AllocatesClause {
             s.push_str(token_ascii(&tmp));
             s.push_str(" ");
         }
-        s.push_str(&self.expr.to_string());
-        s.push_str(" ");
-        if self.comma_token {
-            let mut tmp = stringify!(comma_token).to_string();
-            tmp.truncate(tmp.len() - 6);
-            s.push_str(token_ascii(&tmp));
-            s.push_str(" ");
-        }
+        s.push_str(&self.exprs.iter().map(|it| it.to_string()).collect::<Vec<String>>().join(" "));
         write!(f, "{s}")
     }
 }
@@ -8138,6 +8134,10 @@ impl std::fmt::Display for ClosureExpr {
             s.push_str(" ");
         }
         if let Some(it) = &self.ensures_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.opens_invariants_clause {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
@@ -10331,11 +10331,11 @@ impl std::fmt::Display for ProofFnType {
             s.push_str(token_ascii(&tmp));
             s.push_str(" ");
         }
-        if let Some(it) = &self.proof_fn_characteristics {
+        if let Some(it) = &self.generic_param_list {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
-        if let Some(it) = &self.generic_param_list {
+        if let Some(it) = &self.proof_fn_characteristics {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
@@ -13269,12 +13269,7 @@ impl Abi {
     pub fn new() -> Self { Self { extern_token: true, string_token: false, cst: None } }
 }
 impl AllocatesClause {
-    pub fn new<ET0>(expr: ET0) -> Self
-    where
-        ET0: Into<Expr>,
-    {
-        Self { allocates_token: true, expr: Box::new(expr.into()), comma_token: false, cst: None }
-    }
+    pub fn new() -> Self { Self { allocates_token: true, exprs: vec![], cst: None } }
 }
 impl ArgList {
     pub fn new() -> Self {
@@ -13809,6 +13804,7 @@ impl ClosureExpr {
             ret_type: None,
             requires_clause: None,
             ensures_clause: None,
+            opens_invariants_clause: None,
             allocates_clause: None,
             body: Box::new(body.into()),
             cst: None,
@@ -14644,8 +14640,8 @@ impl ProofFnType {
     pub fn new() -> Self {
         Self {
             proof_fn_token: true,
-            proof_fn_characteristics: None,
             generic_param_list: None,
+            proof_fn_characteristics: None,
             param_list: None,
             ret_type: None,
             cst: None,

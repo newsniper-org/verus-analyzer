@@ -16,8 +16,41 @@ pub(super) fn at_contract_boundary(p: &Parser<'_>) -> bool {
     nth_at_contract_boundary(p, 0)
 }
 
+/// Is the current `{ .. }` a block expression that is the whole of a clause, as in
+/// `requires { &&& a &&& b },`? Such a block is followed by a comma and then by what can follow a
+/// clause: the body, another clause, or the end of the item. A closure body followed by a comma
+/// (`f(|x| ensures x > 0, { x }, 3)`) is followed by something else, so it is not a clause.
+fn at_clause_block(p: &Parser<'_>) -> bool {
+    let Some(after_block) = p.brace_block_end(T![,]) else { return false };
+    let next = after_block + 1;
+    matches!(p.kind_at(next), EOF | T!['{'] | T!['}'] | T![;] | T![']'])
+        || [
+            T![requires],
+            T![recommends],
+            T![ensures],
+            T![default_ensures],
+            T![returns],
+            T![decreases],
+            T![opens_invariants],
+            T![no_unwind],
+            T![allocates],
+            T![invariant],
+            T![invariant_except_break],
+            T![outer_mask],
+            T![inner_mask],
+            T![when],
+            T![via],
+        ]
+        .contains(&p.contextual_kind_at(next))
+}
+
 fn nth_at_contract_boundary(p: &Parser<'_>, n: usize) -> bool {
-    matches!(p.nth(n), EOF | T!['{'] | T![;] | T![']'])
+    // `{` starts the body, unless it is a block expression of the clause: `requires { .. },`
+    if n == 0 && at_clause_block(p) {
+        return false;
+    }
+    // `}` ends the last clause inside an `atomically (..) { .. }` block
+    matches!(p.nth(n), EOF | T!['{'] | T!['}'] | T![;] | T![']'])
         || p.nth_at_contextual_kw(n, T![requires])
         || p.nth_at_contextual_kw(n, T![recommends])
         || p.nth_at_contextual_kw(n, T![ensures])
@@ -68,12 +101,12 @@ pub(super) fn ret_type(p: &mut Parser<'_>) -> bool {
 
     let m = p.start();
     p.bump(T![->]);
+    // `-> tracked !` is the never type with a mode; `-> tracked!(..)` is a macro call
+    let tracked_never = p.nth_at(1, T![!]) && !matches!(p.nth(2), T!['('] | T!['[']);
     if p.at_contextual_kw(T![tracked])
-        && !nth_at_contract_boundary(p, 1)
-        && !matches!(
-            p.nth(1),
-            EOF | T![,] | T![')'] | T!['}'] | T![>] | T![::] | T![<] | T![!] | T![where]
-        )
+        && (tracked_never || !nth_at_contract_boundary(p, 1))
+        && !matches!(p.nth(1), EOF | T![,] | T![')'] | T!['}'] | T![>] | T![::] | T![<] | T![where])
+        && (tracked_never || !p.nth_at(1, T![!]))
     {
         eat_kw(p, T![tracked]);
     }
@@ -94,8 +127,11 @@ pub(super) fn ret_type(p: &mut Parser<'_>) -> bool {
 pub(super) fn proof_fn_type(p: &mut Parser<'_>) -> CompletedMarker {
     let m = p.start();
     expect_kw(p, T![proof_fn]);
+    // Verus writes `proof_fn<'a>[Once](..)` (generics, then options); `proof_fn[Once]<'a>(..)`
+    // is accepted as well.
     proof_fn_characteristics(p);
     generic_params::opt_generic_param_list(p);
+    proof_fn_characteristics(p);
     if p.at(T!['(']) {
         params::param_list_proof_fn_ptr(p);
     } else {
@@ -394,8 +430,7 @@ pub(super) fn no_unwind(p: &mut Parser<'_>) -> CompletedMarker {
 pub(super) fn allocates(p: &mut Parser<'_>) -> CompletedMarker {
     let m = p.start();
     expect_kw(p, T![allocates]);
-    expressions::expr_no_struct(p);
-    p.eat(T![,]);
+    expr_list(p);
     m.complete(p, ALLOCATES_CLAUSE)
 }
 
@@ -550,11 +585,32 @@ pub(super) fn loop_clauses(p: &mut Parser<'_>) {
     }
 }
 
+/// Consume balanced tokens up to (not including) the `]` that closes the enclosing attribute.
+fn skip_to_closing_bracket(p: &mut Parser<'_>) {
+    let mut depth = 0usize;
+    while !p.at(EOF) {
+        match p.current() {
+            T!['['] | T!['('] | T!['{'] => depth += 1,
+            T![']'] if depth == 0 => return,
+            T![']'] | T![')'] | T!['}'] => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+        p.bump_any();
+    }
+}
+
 pub(super) fn trigger_attribute(p: &mut Parser<'_>, inner: bool) -> CompletedMarker {
     let m = p.start();
     expect_kw(p, T![trigger]);
-    if inner && !p.at(T![']']) {
+    // `#![trigger a(x), b(x)]` and `#[trigger a(x)]` both carry the trigger expressions;
+    // `#[trigger] a(x)` marks the expression after it and has none.
+    let _ = inner;
+    if !p.at(T![']']) {
         expr_list(p);
+        // The attribute body is a token tree to Verus, and a trigger group may list its
+        // expressions without commas: `#![trigger f(x) g(y)]`. Keep what is left, up to the
+        // closing bracket, as part of the attribute.
+        skip_to_closing_bracket(p);
     }
     m.complete(p, TRIGGER_ATTRIBUTE)
 }
@@ -572,10 +628,12 @@ pub(super) fn global_clause(p: &mut Parser<'_>, m: Marker) {
         expect_kw(p, T![size]);
         p.expect(T![==]);
         p.expect(INT_NUMBER);
-        p.expect(T![,]);
-        expect_kw(p, T![align]);
-        p.expect(T![==]);
-        p.expect(INT_NUMBER);
+        // `, align == N` is optional
+        if p.eat(T![,]) {
+            expect_kw(p, T![align]);
+            p.expect(T![==]);
+            p.expect(INT_NUMBER);
+        }
     }
     p.expect(T![;]);
     m.complete(p, VERUS_GLOBAL);
