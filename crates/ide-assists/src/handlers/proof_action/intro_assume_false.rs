@@ -137,4 +137,35 @@ proof fn f(a: u64, b: u64) {
             ",
         )
     }
+
+    // Functions with an `allocates` clause must still be formattable: the proof-action
+    // formatter hands the function to verusfmt, which has to parse the clause.
+    #[test]
+    fn test_by_assume_false_fn_with_allocates() {
+        check_assist(
+            by_assume_false,
+            "
+fn f(v: &mut Vec<u8>)
+    allocates 1,
+{
+    proof {
+        ass$0ert(1int == 1);
+    }
+    v.push(0);
+}
+            ",
+            "
+fn f(v: &mut Vec<u8>)
+    allocates 1,
+{
+    proof {
+        assert(1int == 1) by {
+            assume(false);
+        };
+    }
+    v.push(0);
+}
+            ",
+        )
+    }
 }
