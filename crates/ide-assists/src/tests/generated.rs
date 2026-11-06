@@ -789,6 +789,23 @@ fn foo() {
 }
 
 #[test]
+fn doctest_convert_tail_call_to_become() {
+    check_doc_test(
+        "convert_tail_call_to_become",
+        r#####"
+fn sum(n: u64, acc: u64) -> u64 {
+    if n == 0 { acc } else { sum$0(n - 1, acc + n) }
+}
+"#####,
+        r#####"
+fn sum(n: u64, acc: u64) -> u64 {
+    if n == 0 { acc } else { become sum(n - 1, acc + n) }
+}
+"#####,
+    )
+}
+
+#[test]
 fn doctest_convert_to_guarded_return() {
     check_doc_test(
         "convert_to_guarded_return",
