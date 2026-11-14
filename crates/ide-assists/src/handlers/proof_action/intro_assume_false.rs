@@ -138,6 +138,44 @@ proof fn f(a: u64, b: u64) {
         )
     }
 
+    // Likewise for bound specifications (`T: Tr with { .. }`) and `become`.
+    #[test]
+    fn test_by_assume_false_fn_with_bound_spec_and_become() {
+        check_assist(
+            by_assume_false,
+            "
+fn f<T: Clone with { fn clone(&self) -> Self allocates 0; fn drop allocates 0; }>(t: &T, n: u64) -> u64
+    decreases n,
+{
+    proof {
+        ass$0ert(1int == 1);
+    }
+    if n == 0 {
+        0
+    } else {
+        become f::<T>(t, n - 1)
+    }
+}
+            ",
+            "
+fn f<T: Clone with { fn clone(&self) -> Self allocates 0; fn drop allocates 0; }>(t: &T, n: u64) -> u64
+    decreases n,
+{
+    proof {
+        assert(1int == 1) by {
+            assume(false);
+        };
+    }
+    if n == 0 {
+        0
+    } else {
+        become f::<T>(t, n - 1)
+    }
+}
+            ",
+        )
+    }
+
     // Functions with an `allocates` clause must still be formattable: the proof-action
     // formatter hands the function to verusfmt, which has to parse the clause.
     #[test]
