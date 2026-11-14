@@ -87,7 +87,7 @@ GenericParam =
 | TypeParam
 
 TypeParam =
-  Attr* Name (':' TypeBoundList?)?
+  Attr* Name (':' TypeBoundList?)? BoundSpec?
   ('=' default_type:Type)?
 
 ConstParam =
@@ -101,7 +101,17 @@ WhereClause =
   'where' predicates:(WherePred (',' WherePred)* ','?)
 
 WherePred =
-  ForBinder? (Lifetime | Type) ':' TypeBoundList?
+  ForBinder? (Lifetime | Type) ':' TypeBoundList? BoundSpec?
+
+// Verus fork (alloc-check): `T: Tr with { fn m(&self) -> R allocates e; fn drop allocates 0; }`,
+// a specification of the bound's methods
+BoundSpec =
+  'with' '{' fns:BoundSpecFn* '}'
+
+BoundSpecFn =
+  'fn' Name GenericParamList? ParamList? RetType? WhereClause?
+  Prover? AtomicSpec? RequiresClause? RecommendsClause? EnsuresClause? DefaultEnsuresClause?
+  ReturnsClause? SignatureDecreases? OpensInvariantsClause? NoUnwindClause? AllocatesClause? ';'
 
 
 //*************************//

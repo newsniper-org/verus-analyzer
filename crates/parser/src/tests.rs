@@ -176,6 +176,116 @@ verus! {
     }
 }
 
+#[test]
+fn verus_bound_spec_parses() {
+    // (source, number of BOUND_SPEC nodes, number of BOUND_SPEC_FN nodes)
+    let cases = [
+        // a function's type parameter: a method with clauses, and the drop glue
+        (
+            r#"
+verus! {
+    fn f<T: Clone with { fn clone(&self) -> (r: Self) ensures r == *self allocates 0; fn drop allocates 0; }>(t: &T) -> T
+        allocates 0
+    {
+        t.clone()
+    }
+}
+"#,
+            1,
+            2,
+        ),
+        // a struct's and an impl's type parameters, and a default after the specification
+        (
+            r#"
+verus! {
+    struct S<T: Clone with { fn drop allocates 0; } = u8> { t: T }
+    impl<T: Clone with { fn clone(&self) -> Self allocates 0; }> S<T> {
+        fn m(&self) {}
+    }
+}
+"#,
+            2,
+            2,
+        ),
+        // a where predicate, followed by the function's own clauses
+        (
+            r#"
+verus! {
+    fn g<T, U>(t: &T, u: U) -> T
+        where
+            T: Clone with { fn clone(&self) -> Self requires true allocates 1; },
+            U: Copy,
+        allocates 1
+    {
+        t.clone()
+    }
+}
+"#,
+            1,
+            1,
+        ),
+        // an empty specification, and one on a trait with generic arguments
+        (
+            "verus! { fn h<T: Clone with {}, F: Fn(u8) -> u8 with { fn call(&self, a: (u8,)) -> u8 allocates 0; }>() {} }",
+            2,
+            1,
+        ),
+        // `with` is contextual: it stays usable as an ordinary identifier
+        ("verus! { fn f(with: u8) -> u8 { with } }", 0, 0),
+        ("verus! { fn f<T: Clone>() where T: Copy { let with = 3; } }", 0, 0),
+    ];
+    for (source, specs, fns) in cases {
+        let (actual, errors) = parse(TopEntryPoint::SourceFile, source, Edition::CURRENT);
+        assert!(!errors, "{source}\n{actual}");
+        let count = |k: &str| actual.lines().filter(|l| l.trim() == k).count();
+        assert_eq!(count("BOUND_SPEC"), specs, "{source}\n{actual}");
+        assert_eq!(count("BOUND_SPEC_FN"), fns, "{source}\n{actual}");
+    }
+}
+
+/// The rest of what this fork's Verus (`fip-beta`) adds needs no parser change of its own; these
+/// guard that it parses inside `verus!`.
+#[test]
+fn verus_fip_syntax_parses() {
+    let cases = [
+        (
+            "become in a strict fip function",
+            r#"
+verus! {
+    #[verifier::fip(strict)]
+    fn count_down(x: u64) -> (r: u64)
+        ensures r == 0,
+        decreases x,
+        allocates 0
+    {
+        if x == 0 { 0 } else { become count_down(x - 1) }
+    }
+}
+"#,
+        ),
+        (
+            "become with a method and a path call",
+            "verus! { impl S { #[verifier::fip] fn a(&self, n: u8) -> u8 { match n { 0 => 0, _ => become self.a(n - 1) } } fn b<T>(n: u8) -> u8 { become Self::b::<T>(n) } } }",
+        ),
+        (
+            "deref patterns through a Box",
+            "verus! { fn d(b: Box<Option<u8>>) -> u8 { match b { deref!(Some(x)) => x, deref!(None) => 0 } } }",
+        ),
+        (
+            "a trusted_call block",
+            "verus! { fn t(p: *mut u8) { #[verifier::trusted_call] { unsafe { dealloc(p) } } } }",
+        ),
+        (
+            "deallocates_when and call_allocates in an allocates bound",
+            "verus! { pub assume_specification<T: Ord>[ core::cmp::max ](a: T, b: T) -> T allocates deallocates_when(call_allocates(T::max, (a, b)), !ord_is_fip::<T>()); }",
+        ),
+    ];
+    for (feature, source) in cases {
+        let (actual, errors) = parse(TopEntryPoint::SourceFile, source, Edition::CURRENT);
+        assert!(!errors, "{feature}: {source}\n{actual}");
+    }
+}
+
 /// Syntax that Verus accepts (it is in Verus's own test-suite) and that the parser must read
 /// without errors. Each entry names the feature.
 ///

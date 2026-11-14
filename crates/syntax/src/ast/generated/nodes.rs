@@ -580,6 +580,60 @@ impl BlockExpr {
     #[inline]
     pub fn unsafe_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![unsafe]) }
 }
+pub struct BoundSpec {
+    pub(crate) syntax: SyntaxNode,
+}
+impl BoundSpec {
+    #[inline]
+    pub fn fns(&self) -> AstChildren<BoundSpecFn> { support::children(&self.syntax) }
+    #[inline]
+    pub fn l_curly_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T!['{']) }
+    #[inline]
+    pub fn r_curly_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T!['}']) }
+    #[inline]
+    pub fn with_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![with]) }
+}
+pub struct BoundSpecFn {
+    pub(crate) syntax: SyntaxNode,
+}
+impl ast::HasGenericParams for BoundSpecFn {}
+impl ast::HasName for BoundSpecFn {}
+impl BoundSpecFn {
+    #[inline]
+    pub fn allocates_clause(&self) -> Option<AllocatesClause> { support::child(&self.syntax) }
+    #[inline]
+    pub fn atomic_spec(&self) -> Option<AtomicSpec> { support::child(&self.syntax) }
+    #[inline]
+    pub fn default_ensures_clause(&self) -> Option<DefaultEnsuresClause> {
+        support::child(&self.syntax)
+    }
+    #[inline]
+    pub fn ensures_clause(&self) -> Option<EnsuresClause> { support::child(&self.syntax) }
+    #[inline]
+    pub fn no_unwind_clause(&self) -> Option<NoUnwindClause> { support::child(&self.syntax) }
+    #[inline]
+    pub fn opens_invariants_clause(&self) -> Option<OpensInvariantsClause> {
+        support::child(&self.syntax)
+    }
+    #[inline]
+    pub fn param_list(&self) -> Option<ParamList> { support::child(&self.syntax) }
+    #[inline]
+    pub fn prover(&self) -> Option<Prover> { support::child(&self.syntax) }
+    #[inline]
+    pub fn recommends_clause(&self) -> Option<RecommendsClause> { support::child(&self.syntax) }
+    #[inline]
+    pub fn requires_clause(&self) -> Option<RequiresClause> { support::child(&self.syntax) }
+    #[inline]
+    pub fn ret_type(&self) -> Option<RetType> { support::child(&self.syntax) }
+    #[inline]
+    pub fn returns_clause(&self) -> Option<ReturnsClause> { support::child(&self.syntax) }
+    #[inline]
+    pub fn signature_decreases(&self) -> Option<SignatureDecreases> { support::child(&self.syntax) }
+    #[inline]
+    pub fn semicolon_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![;]) }
+    #[inline]
+    pub fn fn_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![fn]) }
+}
 pub struct BoxPat {
     pub(crate) syntax: SyntaxNode,
 }
@@ -2699,6 +2753,8 @@ impl ast::HasName for TypeParam {}
 impl ast::HasTypeBounds for TypeParam {}
 impl TypeParam {
     #[inline]
+    pub fn bound_spec(&self) -> Option<BoundSpec> { support::child(&self.syntax) }
+    #[inline]
     pub fn default_type(&self) -> Option<Type> { support::child(&self.syntax) }
     #[inline]
     pub fn eq_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![=]) }
@@ -2895,6 +2951,8 @@ pub struct WherePred {
 }
 impl ast::HasTypeBounds for WherePred {}
 impl WherePred {
+    #[inline]
+    pub fn bound_spec(&self) -> Option<BoundSpec> { support::child(&self.syntax) }
     #[inline]
     pub fn for_binder(&self) -> Option<ForBinder> { support::child(&self.syntax) }
     #[inline]
@@ -4418,6 +4476,70 @@ impl Clone for BlockExpr {
 impl fmt::Debug for BlockExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("BlockExpr").field("syntax", &self.syntax).finish()
+    }
+}
+impl AstNode for BoundSpec {
+    #[inline]
+    fn kind() -> SyntaxKind
+    where
+        Self: Sized,
+    {
+        BOUND_SPEC
+    }
+    #[inline]
+    fn can_cast(kind: SyntaxKind) -> bool { kind == BOUND_SPEC }
+    #[inline]
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) { Some(Self { syntax }) } else { None }
+    }
+    #[inline]
+    fn syntax(&self) -> &SyntaxNode { &self.syntax }
+}
+impl hash::Hash for BoundSpec {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) { self.syntax.hash(state); }
+}
+impl Eq for BoundSpec {}
+impl PartialEq for BoundSpec {
+    fn eq(&self, other: &Self) -> bool { self.syntax == other.syntax }
+}
+impl Clone for BoundSpec {
+    fn clone(&self) -> Self { Self { syntax: self.syntax.clone() } }
+}
+impl fmt::Debug for BoundSpec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BoundSpec").field("syntax", &self.syntax).finish()
+    }
+}
+impl AstNode for BoundSpecFn {
+    #[inline]
+    fn kind() -> SyntaxKind
+    where
+        Self: Sized,
+    {
+        BOUND_SPEC_FN
+    }
+    #[inline]
+    fn can_cast(kind: SyntaxKind) -> bool { kind == BOUND_SPEC_FN }
+    #[inline]
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) { Some(Self { syntax }) } else { None }
+    }
+    #[inline]
+    fn syntax(&self) -> &SyntaxNode { &self.syntax }
+}
+impl hash::Hash for BoundSpecFn {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) { self.syntax.hash(state); }
+}
+impl Eq for BoundSpecFn {}
+impl PartialEq for BoundSpecFn {
+    fn eq(&self, other: &Self) -> bool { self.syntax == other.syntax }
+}
+impl Clone for BoundSpecFn {
+    fn clone(&self) -> Self { Self { syntax: self.syntax.clone() } }
+}
+impl fmt::Debug for BoundSpecFn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BoundSpecFn").field("syntax", &self.syntax).finish()
     }
 }
 impl AstNode for BoxPat {
@@ -12065,7 +12187,16 @@ impl AstNode for AnyHasGenericParams {
     fn can_cast(kind: SyntaxKind) -> bool {
         matches!(
             kind,
-            ASSUME_SPECIFICATION | CONST | ENUM | FN | IMPL | STRUCT | TRAIT | TYPE_ALIAS | UNION
+            ASSUME_SPECIFICATION
+                | BOUND_SPEC_FN
+                | CONST
+                | ENUM
+                | FN
+                | IMPL
+                | STRUCT
+                | TRAIT
+                | TYPE_ALIAS
+                | UNION
         )
     }
     #[inline]
@@ -12093,6 +12224,12 @@ impl fmt::Debug for AnyHasGenericParams {
 impl From<AssumeSpecification> for AnyHasGenericParams {
     #[inline]
     fn from(node: AssumeSpecification) -> AnyHasGenericParams {
+        AnyHasGenericParams { syntax: node.syntax }
+    }
+}
+impl From<BoundSpecFn> for AnyHasGenericParams {
+    #[inline]
+    fn from(node: BoundSpecFn) -> AnyHasGenericParams {
         AnyHasGenericParams { syntax: node.syntax }
     }
 }
@@ -12215,6 +12352,7 @@ impl AstNode for AnyHasName {
                 | ATOMIC_PERM_FIELD
                 | ATOMIC_PRED_TYPE_CLAUSE
                 | ATOMIC_SPEC
+                | BOUND_SPEC_FN
                 | BROADCAST_GROUP
                 | CONST
                 | CONST_PARAM
@@ -12278,6 +12416,10 @@ impl From<AtomicPredTypeClause> for AnyHasName {
 impl From<AtomicSpec> for AnyHasName {
     #[inline]
     fn from(node: AtomicSpec) -> AnyHasName { AnyHasName { syntax: node.syntax } }
+}
+impl From<BoundSpecFn> for AnyHasName {
+    #[inline]
+    fn from(node: BoundSpecFn) -> AnyHasName { AnyHasName { syntax: node.syntax } }
 }
 impl From<BroadcastGroup> for AnyHasName {
     #[inline]
@@ -12807,6 +12949,16 @@ impl std::fmt::Display for BinExpr {
     }
 }
 impl std::fmt::Display for BlockExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for BoundSpec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for BoundSpecFn {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

@@ -568,7 +568,7 @@ fn fn_(p: &mut Parser<'_>, m: Marker) {
     m.complete(p, FN);
 }
 
-fn parse_verus_contracts(p: &mut Parser<'_>) {
+pub(super) fn parse_verus_contracts(p: &mut Parser<'_>) {
     if p.at_contextual_kw(T![by]) {
         verus::prover(p);
     }

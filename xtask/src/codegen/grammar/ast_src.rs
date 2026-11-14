@@ -143,6 +143,7 @@ const CONTEXTUAL_KEYWORDS: &[&str] = &[
     "none",
     "no_unwind",
     "allocates",
+    "with",
     "requires",
     "ensures",
     "default_ensures",

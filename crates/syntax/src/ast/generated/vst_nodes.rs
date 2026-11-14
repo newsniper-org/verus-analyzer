@@ -341,6 +341,36 @@ pub struct BlockExpr {
     pub cst: Option<super::nodes::BlockExpr>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BoundSpec {
+    pub with_token: bool,
+    pub l_curly_token: bool,
+    pub fns: Vec<BoundSpecFn>,
+    pub r_curly_token: bool,
+    pub cst: Option<super::nodes::BoundSpec>,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BoundSpecFn {
+    pub fn_token: bool,
+    pub name: Box<Name>,
+    pub generic_param_list: Option<Box<GenericParamList>>,
+    pub param_list: Option<Box<ParamList>>,
+    pub ret_type: Option<Box<RetType>>,
+    pub where_clause: Option<Box<WhereClause>>,
+    pub prover: Option<Box<Prover>>,
+    pub atomic_spec: Option<Box<AtomicSpec>>,
+    pub requires_clause: Option<Box<RequiresClause>>,
+    pub recommends_clause: Option<Box<RecommendsClause>>,
+    pub ensures_clause: Option<Box<EnsuresClause>>,
+    pub default_ensures_clause: Option<Box<DefaultEnsuresClause>>,
+    pub returns_clause: Option<Box<ReturnsClause>>,
+    pub signature_decreases: Option<Box<SignatureDecreases>>,
+    pub opens_invariants_clause: Option<Box<OpensInvariantsClause>>,
+    pub no_unwind_clause: Option<Box<NoUnwindClause>>,
+    pub allocates_clause: Option<Box<AllocatesClause>>,
+    pub semicolon_token: bool,
+    pub cst: Option<super::nodes::BoundSpecFn>,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BoxPat {
     pub box_token: bool,
     pub pat: Option<Box<Pat>>,
@@ -1661,6 +1691,7 @@ pub struct TypeParam {
     pub name: Box<Name>,
     pub colon_token: bool,
     pub type_bound_list: Option<Box<TypeBoundList>>,
+    pub bound_spec: Option<Box<BoundSpec>>,
     pub eq_token: bool,
     pub default_type: Option<Box<Type>>,
     pub cst: Option<super::nodes::TypeParam>,
@@ -1792,6 +1823,7 @@ pub struct WherePred {
     pub ty: Option<Box<Type>>,
     pub colon_token: bool,
     pub type_bound_list: Option<Box<TypeBoundList>>,
+    pub bound_spec: Option<Box<BoundSpec>>,
     pub cst: Option<super::nodes::WherePred>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -2804,6 +2836,97 @@ impl TryFrom<super::nodes::BlockExpr> for BlockExpr {
                     .ok_or(format!("{}", stringify!(stmt_list)))
                     .map(|it| StmtList::try_from(it))??,
             ),
+            cst: Some(item.clone()),
+        })
+    }
+}
+impl TryFrom<super::nodes::BoundSpec> for BoundSpec {
+    type Error = String;
+    fn try_from(item: super::nodes::BoundSpec) -> Result<Self, Self::Error> {
+        Ok(Self {
+            with_token: item.with_token().is_some(),
+            l_curly_token: item.l_curly_token().is_some(),
+            fns: item
+                .fns()
+                .into_iter()
+                .map(BoundSpecFn::try_from)
+                .collect::<Result<Vec<BoundSpecFn>, String>>()?,
+            r_curly_token: item.r_curly_token().is_some(),
+            cst: Some(item.clone()),
+        })
+    }
+}
+impl TryFrom<super::nodes::BoundSpecFn> for BoundSpecFn {
+    type Error = String;
+    fn try_from(item: super::nodes::BoundSpecFn) -> Result<Self, Self::Error> {
+        Ok(Self {
+            fn_token: item.fn_token().is_some(),
+            name: Box::new(
+                item.name()
+                    .ok_or(format!("{}", stringify!(name)))
+                    .map(|it| Name::try_from(it))??,
+            ),
+            generic_param_list: match item.generic_param_list() {
+                Some(it) => Some(Box::new(GenericParamList::try_from(it)?)),
+                None => None,
+            },
+            param_list: match item.param_list() {
+                Some(it) => Some(Box::new(ParamList::try_from(it)?)),
+                None => None,
+            },
+            ret_type: match item.ret_type() {
+                Some(it) => Some(Box::new(RetType::try_from(it)?)),
+                None => None,
+            },
+            where_clause: match item.where_clause() {
+                Some(it) => Some(Box::new(WhereClause::try_from(it)?)),
+                None => None,
+            },
+            prover: match item.prover() {
+                Some(it) => Some(Box::new(Prover::try_from(it)?)),
+                None => None,
+            },
+            atomic_spec: match item.atomic_spec() {
+                Some(it) => Some(Box::new(AtomicSpec::try_from(it)?)),
+                None => None,
+            },
+            requires_clause: match item.requires_clause() {
+                Some(it) => Some(Box::new(RequiresClause::try_from(it)?)),
+                None => None,
+            },
+            recommends_clause: match item.recommends_clause() {
+                Some(it) => Some(Box::new(RecommendsClause::try_from(it)?)),
+                None => None,
+            },
+            ensures_clause: match item.ensures_clause() {
+                Some(it) => Some(Box::new(EnsuresClause::try_from(it)?)),
+                None => None,
+            },
+            default_ensures_clause: match item.default_ensures_clause() {
+                Some(it) => Some(Box::new(DefaultEnsuresClause::try_from(it)?)),
+                None => None,
+            },
+            returns_clause: match item.returns_clause() {
+                Some(it) => Some(Box::new(ReturnsClause::try_from(it)?)),
+                None => None,
+            },
+            signature_decreases: match item.signature_decreases() {
+                Some(it) => Some(Box::new(SignatureDecreases::try_from(it)?)),
+                None => None,
+            },
+            opens_invariants_clause: match item.opens_invariants_clause() {
+                Some(it) => Some(Box::new(OpensInvariantsClause::try_from(it)?)),
+                None => None,
+            },
+            no_unwind_clause: match item.no_unwind_clause() {
+                Some(it) => Some(Box::new(NoUnwindClause::try_from(it)?)),
+                None => None,
+            },
+            allocates_clause: match item.allocates_clause() {
+                Some(it) => Some(Box::new(AllocatesClause::try_from(it)?)),
+                None => None,
+            },
+            semicolon_token: item.semicolon_token().is_some(),
             cst: Some(item.clone()),
         })
     }
@@ -6023,6 +6146,10 @@ impl TryFrom<super::nodes::TypeParam> for TypeParam {
                 Some(it) => Some(Box::new(TypeBoundList::try_from(it)?)),
                 None => None,
             },
+            bound_spec: match item.bound_spec() {
+                Some(it) => Some(Box::new(BoundSpec::try_from(it)?)),
+                None => None,
+            },
             eq_token: item.eq_token().is_some(),
             default_type: match item.default_type() {
                 Some(it) => Some(Box::new(Type::try_from(it)?)),
@@ -6330,6 +6457,10 @@ impl TryFrom<super::nodes::WherePred> for WherePred {
             colon_token: item.colon_token().is_some(),
             type_bound_list: match item.type_bound_list() {
                 Some(it) => Some(Box::new(TypeBoundList::try_from(it)?)),
+                None => None,
+            },
+            bound_spec: match item.bound_spec() {
+                Some(it) => Some(Box::new(BoundSpec::try_from(it)?)),
                 None => None,
             },
             cst: Some(item.clone()),
@@ -7787,6 +7918,111 @@ impl std::fmt::Display for BlockExpr {
         }
         s.push_str(&self.stmt_list.to_string());
         s.push_str(" ");
+        write!(f, "{s}")
+    }
+}
+impl std::fmt::Display for BoundSpec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+        if self.with_token {
+            let mut tmp = stringify!(with_token).to_string();
+            tmp.truncate(tmp.len() - 6);
+            s.push_str(token_ascii(&tmp));
+            s.push_str(" ");
+        }
+        if self.l_curly_token {
+            let mut tmp = stringify!(l_curly_token).to_string();
+            tmp.truncate(tmp.len() - 6);
+            s.push_str(token_ascii(&tmp));
+            s.push_str(" ");
+        }
+        s.push_str(&self.fns.iter().map(|it| it.to_string()).collect::<Vec<String>>().join(" "));
+        if self.r_curly_token {
+            let mut tmp = stringify!(r_curly_token).to_string();
+            tmp.truncate(tmp.len() - 6);
+            s.push_str(token_ascii(&tmp));
+            s.push_str(" ");
+        }
+        write!(f, "{s}")
+    }
+}
+impl std::fmt::Display for BoundSpecFn {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+        if self.fn_token {
+            let mut tmp = stringify!(fn_token).to_string();
+            tmp.truncate(tmp.len() - 6);
+            s.push_str(token_ascii(&tmp));
+            s.push_str(" ");
+        }
+        s.push_str(&self.name.to_string());
+        s.push_str(" ");
+        if let Some(it) = &self.generic_param_list {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.param_list {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.ret_type {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.where_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.prover {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.atomic_spec {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.requires_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.recommends_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.ensures_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.default_ensures_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.returns_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.signature_decreases {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.opens_invariants_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.no_unwind_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.allocates_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if self.semicolon_token {
+            let mut tmp = stringify!(semicolon_token).to_string();
+            tmp.truncate(tmp.len() - 6);
+            s.push_str(token_ascii(&tmp));
+            s.push_str(" ");
+        }
         write!(f, "{s}")
     }
 }
@@ -11698,6 +11934,10 @@ impl std::fmt::Display for TypeParam {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
+        if let Some(it) = &self.bound_spec {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
         if self.eq_token {
             let mut tmp = stringify!(eq_token).to_string();
             tmp.truncate(tmp.len() - 6);
@@ -12106,6 +12346,10 @@ impl std::fmt::Display for WherePred {
             s.push_str(" ");
         }
         if let Some(it) = &self.type_bound_list {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.bound_spec {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
@@ -13676,6 +13920,36 @@ impl BlockExpr {
         }
     }
 }
+impl BoundSpec {
+    pub fn new() -> Self {
+        Self { with_token: true, l_curly_token: true, fns: vec![], r_curly_token: true, cst: None }
+    }
+}
+impl BoundSpecFn {
+    pub fn new(name: Name) -> Self {
+        Self {
+            fn_token: true,
+            name: Box::new(name),
+            generic_param_list: None,
+            param_list: None,
+            ret_type: None,
+            where_clause: None,
+            prover: None,
+            atomic_spec: None,
+            requires_clause: None,
+            recommends_clause: None,
+            ensures_clause: None,
+            default_ensures_clause: None,
+            returns_clause: None,
+            signature_decreases: None,
+            opens_invariants_clause: None,
+            no_unwind_clause: None,
+            allocates_clause: None,
+            semicolon_token: true,
+            cst: None,
+        }
+    }
+}
 impl BoxPat {
     pub fn new() -> Self { Self { box_token: true, pat: None, cst: None } }
 }
@@ -15087,6 +15361,7 @@ impl TypeParam {
             name: Box::new(name),
             colon_token: false,
             type_bound_list: None,
+            bound_spec: None,
             eq_token: false,
             default_type: None,
             cst: None,
@@ -15228,6 +15503,7 @@ impl WherePred {
             ty: None,
             colon_token: true,
             type_bound_list: None,
+            bound_spec: None,
             cst: None,
         }
     }

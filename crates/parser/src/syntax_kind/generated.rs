@@ -210,6 +210,7 @@ pub enum SyntaxKind {
     VERUS__KW,
     VIA_KW,
     WHEN_KW,
+    WITH_KW,
     YEET_KW,
     BYTE,
     BYTE_STRING,
@@ -262,6 +263,8 @@ pub enum SyntaxKind {
     BECOME_EXPR,
     BIN_EXPR,
     BLOCK_EXPR,
+    BOUND_SPEC,
+    BOUND_SPEC_FN,
     BOX_PAT,
     BREAK_EXPR,
     BROADCAST_GROUP,
@@ -493,6 +496,8 @@ impl SyntaxKind {
             | BECOME_EXPR
             | BIN_EXPR
             | BLOCK_EXPR
+            | BOUND_SPEC
+            | BOUND_SPEC_FN
             | BOX_PAT
             | BREAK_EXPR
             | BROADCAST_GROUP
@@ -874,6 +879,7 @@ impl SyntaxKind {
             VERUS__KW => "verus_",
             VIA_KW => "via",
             WHEN_KW => "when",
+            WITH_KW => "with",
             YEET_KW => "yeet",
             ASYNC_KW => "async",
             AWAIT_KW => "await",
@@ -1033,6 +1039,7 @@ impl SyntaxKind {
             VERUS__KW => true,
             VIA_KW => true,
             WHEN_KW => true,
+            WITH_KW => true,
             YEET_KW => true,
             _ => false,
         }
@@ -1180,6 +1187,7 @@ impl SyntaxKind {
             VERUS__KW => true,
             VIA_KW => true,
             WHEN_KW => true,
+            WITH_KW => true,
             YEET_KW => true,
             _ => false,
         }
@@ -1401,6 +1409,7 @@ impl SyntaxKind {
             "verus_" => VERUS__KW,
             "via" => VIA_KW,
             "when" => WHEN_KW,
+            "with" => WITH_KW,
             "yeet" => YEET_KW,
             _ => return None,
         };
@@ -1640,6 +1649,7 @@ macro_rules ! T_ {
     [verus_] => { $ crate :: SyntaxKind :: VERUS__KW };
     [via] => { $ crate :: SyntaxKind :: VIA_KW };
     [when] => { $ crate :: SyntaxKind :: WHEN_KW };
+    [with] => { $ crate :: SyntaxKind :: WITH_KW };
     [yeet] => { $ crate :: SyntaxKind :: YEET_KW };
     [async] => { $ crate :: SyntaxKind :: ASYNC_KW };
     [await] => { $ crate :: SyntaxKind :: AWAIT_KW };

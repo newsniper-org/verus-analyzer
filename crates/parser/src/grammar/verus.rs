@@ -430,6 +430,44 @@ pub(super) fn no_unwind(p: &mut Parser<'_>) -> CompletedMarker {
     m.complete(p, NO_UNWIND_CLAUSE)
 }
 
+/// `with { .. }` after a type parameter's or a where predicate's bounds
+pub(super) fn at_bound_spec(p: &Parser<'_>) -> bool {
+    p.at_contextual_kw(T![with]) && p.nth_at(1, T!['{'])
+}
+
+/// `T: Tr with { fn m(&self, x: X) -> (r: R) requires P ensures Q allocates e; fn drop allocates 0; }`:
+/// a specification of the methods of `T`'s bounds
+pub(super) fn bound_spec(p: &mut Parser<'_>) -> CompletedMarker {
+    let m = p.start();
+    expect_kw(p, T![with]);
+    p.expect(T!['{']);
+    while !p.at(EOF) && !p.at(T!['}']) {
+        if p.at(T![fn]) {
+            bound_spec_fn(p);
+        } else {
+            p.err_recover("expected `fn`", TokenSet::new(&[T![fn], T!['}']]));
+        }
+    }
+    p.expect(T!['}']);
+    m.complete(p, BOUND_SPEC)
+}
+
+fn bound_spec_fn(p: &mut Parser<'_>) -> CompletedMarker {
+    let m = p.start();
+    p.bump(T![fn]);
+    name(p);
+    generic_params::opt_generic_param_list(p);
+    // (`fn drop allocates 0;` has no parameters)
+    if p.at(T!['(']) {
+        params::param_list_fn_def(p);
+    }
+    ret_type(p);
+    generic_params::opt_where_clause(p);
+    items::parse_verus_contracts(p);
+    p.expect(T![;]);
+    m.complete(p, BOUND_SPEC_FN)
+}
+
 pub(super) fn allocates(p: &mut Parser<'_>) -> CompletedMarker {
     let m = p.start();
     expect_kw(p, T![allocates]);

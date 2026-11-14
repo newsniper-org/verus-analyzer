@@ -70,6 +70,9 @@ fn type_param(p: &mut Parser<'_>, m: Marker) {
     if p.at(T![:]) {
         bounds(p);
     }
+    if verus::at_bound_spec(p) {
+        verus::bound_spec(p);
+    }
     if p.at(T![=]) {
         // test type_param_default
         // struct S<T = i32>;
@@ -326,6 +329,9 @@ fn where_predicate(p: &mut Parser<'_>) {
 
             if p.at(T![:]) {
                 bounds(p);
+                if verus::at_bound_spec(p) {
+                    verus::bound_spec(p);
+                }
             } else {
                 p.error("expected colon");
             }
