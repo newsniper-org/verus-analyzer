@@ -360,6 +360,8 @@ impl AssumeSpecification {
     #[inline]
     pub fn allocates_clause(&self) -> Option<AllocatesClause> { support::child(&self.syntax) }
     #[inline]
+    pub fn encapsulates_clause(&self) -> Option<EncapsulatesClause> { support::child(&self.syntax) }
+    #[inline]
     pub fn ensures_clause(&self) -> Option<EnsuresClause> { support::child(&self.syntax) }
     #[inline]
     pub fn no_unwind_clause(&self) -> Option<NoUnwindClause> { support::child(&self.syntax) }
@@ -793,6 +795,8 @@ impl ClosureExpr {
     #[inline]
     pub fn for_binder(&self) -> Option<ForBinder> { support::child(&self.syntax) }
     #[inline]
+    pub fn no_unwind_clause(&self) -> Option<NoUnwindClause> { support::child(&self.syntax) }
+    #[inline]
     pub fn opens_invariants_clause(&self) -> Option<OpensInvariantsClause> {
         support::child(&self.syntax)
     }
@@ -957,6 +961,17 @@ impl DynTraitType {
     #[inline]
     pub fn dyn_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![dyn]) }
 }
+pub struct EncapsulatesClause {
+    pub(crate) syntax: SyntaxNode,
+}
+impl EncapsulatesClause {
+    #[inline]
+    pub fn exprs(&self) -> AstChildren<Expr> { support::children(&self.syntax) }
+    #[inline]
+    pub fn encapsulates_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, T![encapsulates])
+    }
+}
 pub struct EnsuresClause {
     pub(crate) syntax: SyntaxNode,
 }
@@ -1079,6 +1094,8 @@ impl Fn {
     pub fn default_ensures_clause(&self) -> Option<DefaultEnsuresClause> {
         support::child(&self.syntax)
     }
+    #[inline]
+    pub fn encapsulates_clause(&self) -> Option<EncapsulatesClause> { support::child(&self.syntax) }
     #[inline]
     pub fn ensures_clause(&self) -> Option<EnsuresClause> { support::child(&self.syntax) }
     #[inline]
@@ -5212,6 +5229,38 @@ impl Clone for DynTraitType {
 impl fmt::Debug for DynTraitType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DynTraitType").field("syntax", &self.syntax).finish()
+    }
+}
+impl AstNode for EncapsulatesClause {
+    #[inline]
+    fn kind() -> SyntaxKind
+    where
+        Self: Sized,
+    {
+        ENCAPSULATES_CLAUSE
+    }
+    #[inline]
+    fn can_cast(kind: SyntaxKind) -> bool { kind == ENCAPSULATES_CLAUSE }
+    #[inline]
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) { Some(Self { syntax }) } else { None }
+    }
+    #[inline]
+    fn syntax(&self) -> &SyntaxNode { &self.syntax }
+}
+impl hash::Hash for EncapsulatesClause {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) { self.syntax.hash(state); }
+}
+impl Eq for EncapsulatesClause {}
+impl PartialEq for EncapsulatesClause {
+    fn eq(&self, other: &Self) -> bool { self.syntax == other.syntax }
+}
+impl Clone for EncapsulatesClause {
+    fn clone(&self) -> Self { Self { syntax: self.syntax.clone() } }
+}
+impl fmt::Debug for EncapsulatesClause {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("EncapsulatesClause").field("syntax", &self.syntax).finish()
     }
 }
 impl AstNode for EnsuresClause {
@@ -13064,6 +13113,11 @@ impl std::fmt::Display for DerefPat {
     }
 }
 impl std::fmt::Display for DynTraitType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for EncapsulatesClause {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

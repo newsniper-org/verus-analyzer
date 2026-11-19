@@ -695,6 +695,9 @@ fn closure_expr(p: &mut Parser<'_>) -> CompletedMarker {
     if p.at_contextual_kw(T![opens_invariants]) {
         verus::opens_invariants(p);
     }
+    if p.at_contextual_kw(T![no_unwind]) {
+        verus::no_unwind(p);
+    }
     if p.at_contextual_kw(T![allocates]) {
         verus::allocates(p);
     }

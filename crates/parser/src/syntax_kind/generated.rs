@@ -148,6 +148,7 @@ pub enum SyntaxKind {
     DEFAULT_KW,
     DEREF_KW,
     DYN_KW,
+    ENCAPSULATES_KW,
     ENSURES_KW,
     EXEC_KW,
     EXISTS_KW,
@@ -286,6 +287,7 @@ pub enum SyntaxKind {
     DEFAULT_ENSURES_CLAUSE,
     DEREF_PAT,
     DYN_TRAIT_TYPE,
+    ENCAPSULATES_CLAUSE,
     ENSURES_CLAUSE,
     ENUM,
     EXPR_STMT,
@@ -519,6 +521,7 @@ impl SyntaxKind {
             | DEFAULT_ENSURES_CLAUSE
             | DEREF_PAT
             | DYN_TRAIT_TYPE
+            | ENCAPSULATES_CLAUSE
             | ENSURES_CLAUSE
             | ENUM
             | EXPR_STMT
@@ -819,6 +822,7 @@ impl SyntaxKind {
             DEFAULT_ENSURES_KW => "default_ensures",
             DEREF_KW => "deref",
             DYN_KW => "dyn",
+            ENCAPSULATES_KW => "encapsulates",
             ENSURES_KW => "ensures",
             EXEC_KW => "exec",
             EXISTS_KW => "exists",
@@ -979,6 +983,7 @@ impl SyntaxKind {
             DEFAULT_ENSURES_KW => true,
             DEREF_KW => true,
             DYN_KW if edition < Edition::Edition2018 => true,
+            ENCAPSULATES_KW => true,
             ENSURES_KW => true,
             EXEC_KW => true,
             EXISTS_KW => true,
@@ -1127,6 +1132,7 @@ impl SyntaxKind {
             DEFAULT_ENSURES_KW => true,
             DEREF_KW => true,
             DYN_KW if edition < Edition::Edition2018 => true,
+            ENCAPSULATES_KW => true,
             ENSURES_KW => true,
             EXEC_KW => true,
             EXISTS_KW => true,
@@ -1349,6 +1355,7 @@ impl SyntaxKind {
             "default_ensures" => DEFAULT_ENSURES_KW,
             "deref" => DEREF_KW,
             "dyn" if edition < Edition::Edition2018 => DYN_KW,
+            "encapsulates" => ENCAPSULATES_KW,
             "ensures" => ENSURES_KW,
             "exec" => EXEC_KW,
             "exists" => EXISTS_KW,
@@ -1589,6 +1596,7 @@ macro_rules ! T_ {
     [default_ensures] => { $ crate :: SyntaxKind :: DEFAULT_ENSURES_KW };
     [deref] => { $ crate :: SyntaxKind :: DEREF_KW };
     [dyn] => { $ crate :: SyntaxKind :: DYN_KW };
+    [encapsulates] => { $ crate :: SyntaxKind :: ENCAPSULATES_KW };
     [ensures] => { $ crate :: SyntaxKind :: ENSURES_KW };
     [exec] => { $ crate :: SyntaxKind :: EXEC_KW };
     [exists] => { $ crate :: SyntaxKind :: EXISTS_KW };

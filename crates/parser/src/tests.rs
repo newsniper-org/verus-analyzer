@@ -177,6 +177,61 @@ verus! {
 }
 
 #[test]
+fn verus_encapsulates_clause_parses() {
+    // (source, number of ENCAPSULATES_CLAUSE nodes it should contain)
+    let cases = [
+        // a function, after `allocates`'s place
+        ("verus! { fn f(&mut self) -> (r: u64) encapsulates alloc(1, 0) { 0 } }", 1),
+        (
+            r#"
+verus! {
+    fn cond(&mut self, k: u64)
+        ensures true,
+        no_unwind
+        encapsulates alloc(0, if k > 10 { 1 } else { 0 })
+    {
+    }
+}
+"#,
+            1,
+        ),
+        // after a comma, as after `ensures`
+        ("verus! { fn f() ensures true, encapsulates alloc(2, 0) { } }", 1),
+        // `assume_specification`
+        ("verus! { pub assume_specification[ ext_free ](x: u64) encapsulates alloc(0, 1); }", 1),
+        // `encapsulates` is contextual: it stays usable as an ordinary identifier
+        ("verus! { fn f(encapsulates: u8) -> u8 { encapsulates } }", 0),
+    ];
+    for (source, expected) in cases {
+        let (actual, errors) = parse(TopEntryPoint::SourceFile, source, Edition::CURRENT);
+        assert!(!errors, "{source}\n{actual}");
+        let found = actual.lines().filter(|l| l.trim().starts_with("ENCAPSULATES_CLAUSE")).count();
+        assert_eq!(found, expected, "{source}\n{actual}");
+    }
+}
+
+#[test]
+fn verus_closure_no_unwind_parses() {
+    // (source, number of NO_UNWIND_CLAUSE nodes it should contain)
+    let cases = [
+        ("verus! { fn h() { let a = |y: u64| -> (r: u64) no_unwind { y / 2 }; } }", 1),
+        ("verus! { fn h() { let b = |y: u64| -> (r: u64) no_unwind when y < lim { y }; } }", 1),
+        (
+            "verus! { fn h() { let c = |y: u64| -> (r: u64) ensures r == y no_unwind allocates 0 { y }; } }",
+            1,
+        ),
+        // `f.unwinds(x)` is an ordinary method call
+        ("verus! { fn g<F: Fn(u64) -> u64>(f: F) requires !f.unwinds(1) { } }", 0),
+    ];
+    for (source, expected) in cases {
+        let (actual, errors) = parse(TopEntryPoint::SourceFile, source, Edition::CURRENT);
+        assert!(!errors, "{source}\n{actual}");
+        let found = actual.lines().filter(|l| l.trim().starts_with("NO_UNWIND_CLAUSE")).count();
+        assert_eq!(found, expected, "{source}\n{actual}");
+    }
+}
+
+#[test]
 fn verus_bound_spec_parses() {
     // (source, number of BOUND_SPEC nodes, number of BOUND_SPEC_FN nodes)
     let cases = [

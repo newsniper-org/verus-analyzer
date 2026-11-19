@@ -228,6 +228,7 @@ pub struct AssumeSpecification {
     pub opens_invariants_clause: Option<Box<OpensInvariantsClause>>,
     pub no_unwind_clause: Option<Box<NoUnwindClause>>,
     pub allocates_clause: Option<Box<AllocatesClause>>,
+    pub encapsulates_clause: Option<Box<EncapsulatesClause>>,
     pub semicolon_token: bool,
     pub cst: Option<super::nodes::AssumeSpecification>,
 }
@@ -477,6 +478,7 @@ pub struct ClosureExpr {
     pub requires_clause: Option<Box<RequiresClause>>,
     pub ensures_clause: Option<Box<EnsuresClause>>,
     pub opens_invariants_clause: Option<Box<OpensInvariantsClause>>,
+    pub no_unwind_clause: Option<Box<NoUnwindClause>>,
     pub allocates_clause: Option<Box<AllocatesClause>>,
     pub body: Box<Expr>,
     pub cst: Option<super::nodes::ClosureExpr>,
@@ -564,6 +566,12 @@ pub struct DynTraitType {
     pub dyn_token: bool,
     pub type_bound_list: Box<TypeBoundList>,
     pub cst: Option<super::nodes::DynTraitType>,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EncapsulatesClause {
+    pub encapsulates_token: bool,
+    pub exprs: Vec<Expr>,
+    pub cst: Option<super::nodes::EncapsulatesClause>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EnsuresClause {
@@ -664,6 +672,7 @@ pub struct Fn {
     pub opens_invariants_clause: Option<Box<OpensInvariantsClause>>,
     pub no_unwind_clause: Option<Box<NoUnwindClause>>,
     pub allocates_clause: Option<Box<AllocatesClause>>,
+    pub encapsulates_clause: Option<Box<EncapsulatesClause>>,
     pub body: Option<Box<BlockExpr>>,
     pub semicolon_token: bool,
     pub cst: Option<super::nodes::Fn>,
@@ -2575,6 +2584,10 @@ impl TryFrom<super::nodes::AssumeSpecification> for AssumeSpecification {
                 Some(it) => Some(Box::new(AllocatesClause::try_from(it)?)),
                 None => None,
             },
+            encapsulates_clause: match item.encapsulates_clause() {
+                Some(it) => Some(Box::new(EncapsulatesClause::try_from(it)?)),
+                None => None,
+            },
             semicolon_token: item.semicolon_token().is_some(),
             cst: Some(item.clone()),
         })
@@ -3183,6 +3196,10 @@ impl TryFrom<super::nodes::ClosureExpr> for ClosureExpr {
                 Some(it) => Some(Box::new(OpensInvariantsClause::try_from(it)?)),
                 None => None,
             },
+            no_unwind_clause: match item.no_unwind_clause() {
+                Some(it) => Some(Box::new(NoUnwindClause::try_from(it)?)),
+                None => None,
+            },
             allocates_clause: match item.allocates_clause() {
                 Some(it) => Some(Box::new(AllocatesClause::try_from(it)?)),
                 None => None,
@@ -3391,6 +3408,20 @@ impl TryFrom<super::nodes::DynTraitType> for DynTraitType {
                     .ok_or(format!("{}", stringify!(type_bound_list)))
                     .map(|it| TypeBoundList::try_from(it))??,
             ),
+            cst: Some(item.clone()),
+        })
+    }
+}
+impl TryFrom<super::nodes::EncapsulatesClause> for EncapsulatesClause {
+    type Error = String;
+    fn try_from(item: super::nodes::EncapsulatesClause) -> Result<Self, Self::Error> {
+        Ok(Self {
+            encapsulates_token: item.encapsulates_token().is_some(),
+            exprs: item
+                .exprs()
+                .into_iter()
+                .map(Expr::try_from)
+                .collect::<Result<Vec<Expr>, String>>()?,
             cst: Some(item.clone()),
         })
     }
@@ -3675,6 +3706,10 @@ impl TryFrom<super::nodes::Fn> for Fn {
             },
             allocates_clause: match item.allocates_clause() {
                 Some(it) => Some(Box::new(AllocatesClause::try_from(it)?)),
+                None => None,
+            },
+            encapsulates_clause: match item.encapsulates_clause() {
+                Some(it) => Some(Box::new(EncapsulatesClause::try_from(it)?)),
                 None => None,
             },
             body: match item.body() {
@@ -7553,6 +7588,10 @@ impl std::fmt::Display for AssumeSpecification {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
+        if let Some(it) = &self.encapsulates_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
         if self.semicolon_token {
             let mut tmp = stringify!(semicolon_token).to_string();
             tmp.truncate(tmp.len() - 6);
@@ -8377,6 +8416,10 @@ impl std::fmt::Display for ClosureExpr {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
+        if let Some(it) = &self.no_unwind_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
         if let Some(it) = &self.allocates_clause {
             s.push_str(&it.to_string());
             s.push_str(" ");
@@ -8640,6 +8683,19 @@ impl std::fmt::Display for DynTraitType {
         }
         s.push_str(&self.type_bound_list.to_string());
         s.push_str(" ");
+        write!(f, "{s}")
+    }
+}
+impl std::fmt::Display for EncapsulatesClause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+        if self.encapsulates_token {
+            let mut tmp = stringify!(encapsulates_token).to_string();
+            tmp.truncate(tmp.len() - 6);
+            s.push_str(token_ascii(&tmp));
+            s.push_str(" ");
+        }
+        s.push_str(&self.exprs.iter().map(|it| it.to_string()).collect::<Vec<String>>().join(" "));
         write!(f, "{s}")
     }
 }
@@ -8948,6 +9004,10 @@ impl std::fmt::Display for Fn {
             s.push_str(" ");
         }
         if let Some(it) = &self.allocates_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.encapsulates_clause {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
@@ -13787,6 +13847,7 @@ impl AssumeSpecification {
             opens_invariants_clause: None,
             no_unwind_clause: None,
             allocates_clause: None,
+            encapsulates_clause: None,
             semicolon_token: true,
             cst: None,
         }
@@ -14079,6 +14140,7 @@ impl ClosureExpr {
             requires_clause: None,
             ensures_clause: None,
             opens_invariants_clause: None,
+            no_unwind_clause: None,
             allocates_clause: None,
             body: Box::new(body.into()),
             cst: None,
@@ -14165,6 +14227,9 @@ impl DynTraitType {
     pub fn new(type_bound_list: TypeBoundList) -> Self {
         Self { dyn_token: false, type_bound_list: Box::new(type_bound_list), cst: None }
     }
+}
+impl EncapsulatesClause {
+    pub fn new() -> Self { Self { encapsulates_token: true, exprs: vec![], cst: None } }
 }
 impl EnsuresClause {
     pub fn new() -> Self { Self { ensures_token: true, exprs: vec![], cst: None } }
@@ -14281,6 +14346,7 @@ impl Fn {
             opens_invariants_clause: None,
             no_unwind_clause: None,
             allocates_clause: None,
+            encapsulates_clause: None,
             body: None,
             semicolon_token: false,
             cst: None,
