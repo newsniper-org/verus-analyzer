@@ -3442,7 +3442,7 @@ checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 [[package]]
 name = "verusfmt"
 version = "0.7.4"
-source = "git+https://github.com/newsniper-org/verusfmt?branch=fip#c074a31b3d365d340d95d43593b9d8ff1ea6c9bb"
+source = "git+https://github.com/newsniper-org/verusfmt?branch=fip#8fca69a7e6814bd4bc135a0b5f13e389619b597d"
 dependencies = [
  "clap",
  "fs-err",
