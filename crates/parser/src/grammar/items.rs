@@ -602,6 +602,9 @@ pub(super) fn parse_verus_contracts(p: &mut Parser<'_>) {
     if p.at_contextual_kw(T![allocates]) {
         verus::allocates(p);
     }
+    if p.at_contextual_kw(T![deallocates]) {
+        verus::deallocates(p);
+    }
     if p.at_contextual_kw(T![encapsulates]) {
         verus::encapsulates(p);
     }

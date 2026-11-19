@@ -247,7 +247,7 @@ Fn =
  'fn' Name GenericParamList? ParamList RetType? WhereClause?
  Prover? AtomicSpec? RequiresClause? RecommendsClause? EnsuresClause? DefaultEnsuresClause?
  ReturnsClause? SignatureDecreases? OpensInvariantsClause? NoUnwindClause? AllocatesClause?
- EncapsulatesClause?
+ DeallocatesClause? EncapsulatesClause?
  (body:BlockExpr | ';')
 
 Abi =
@@ -619,7 +619,7 @@ ClosureExpr =
   Attr* ForBinder? 'const'? 'static'? 'async'? 'gen'? 'move'?
   ProofFnWithCharacteristics? 'forall'? 'exists'? 'choose'?
   ParamList RetType? RequiresClause? EnsuresClause? OpensInvariantsClause? NoUnwindClause?
-  AllocatesClause? Attr*
+  AllocatesClause? DeallocatesClause? Attr*
   body:Expr
 
 ForBinder =
@@ -952,6 +952,10 @@ NoUnwindClause =
 AllocatesClause =
   'allocates' (Expr (',' Expr)* ','?)?
 
+// `deallocates n`: an upper bound on the number of deallocations (Verus fork, alloc-check)
+DeallocatesClause =
+  'deallocates' (Expr (',' Expr)* ','?)?
+
 // `encapsulates alloc(a, d)`: the function encapsulates an allocator of its own API (Verus fork,
 // alloc-check)
 EncapsulatesClause =
@@ -999,7 +1003,7 @@ AssumeSpecification =
   Attr* Visibility? 'assume_specification' GenericParamList? '[' Path ']'
   ParamList? RetType? WhereClause? RequiresClause? RecommendsClause? EnsuresClause?
   ReturnsClause? SignatureDecreases? OpensInvariantsClause? NoUnwindClause? AllocatesClause?
-  EncapsulatesClause? ';'
+  DeallocatesClause? EncapsulatesClause? ';'
 
 ProofFnCharacteristics =
   '[' fields:(Path (',' Path)* ','?) ']'

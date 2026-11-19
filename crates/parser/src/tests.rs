@@ -211,6 +211,39 @@ verus! {
 }
 
 #[test]
+fn verus_deallocates_clause_parses() {
+    // (source, number of DEALLOCATES_CLAUSE nodes it should contain)
+    let cases = [
+        // a function, after `allocates`
+        ("verus! { fn f(x: u64) allocates 0 deallocates 1 { } }", 1),
+        ("verus! { fn g(x: u64) deallocates deallocates_when(1int, x > 5) { } }", 1),
+        // after a comma, as after `ensures` or `allocates`
+        ("verus! { fn h(n: u64) ensures true, deallocates n { } }", 1),
+        ("verus! { fn k(n: u64) allocates 0, deallocates n { } }", 1),
+        // `assume_specification`
+        ("verus! { pub assume_specification[ ext_free ](x: u64) deallocates 1; }", 1),
+        // a closure, after `allocates`
+        (
+            "verus! { fn c() { let a = |y: u64| -> (r: u64) allocates 0 deallocates 0 { y }; let b = |y: u64| -> (r: u64) deallocates 0 { y }; } }",
+            2,
+        ),
+        // the counts and `deallocated()` are ordinary calls
+        (
+            "verus! { fn q(f: F) requires !f.deallocates(1), f.deallocations(1) == 0 { assert(deallocated() == 0); } }",
+            0,
+        ),
+        // `deallocates` is contextual: it stays usable as an ordinary identifier
+        ("verus! { fn f(deallocates: u8) -> u8 { deallocates } }", 0),
+    ];
+    for (source, expected) in cases {
+        let (actual, errors) = parse(TopEntryPoint::SourceFile, source, Edition::CURRENT);
+        assert!(!errors, "{source}\n{actual}");
+        let found = actual.lines().filter(|l| l.trim().starts_with("DEALLOCATES_CLAUSE")).count();
+        assert_eq!(found, expected, "{source}\n{actual}");
+    }
+}
+
+#[test]
 fn verus_closure_no_unwind_parses() {
     // (source, number of NO_UNWIND_CLAUSE nodes it should contain)
     let cases = [

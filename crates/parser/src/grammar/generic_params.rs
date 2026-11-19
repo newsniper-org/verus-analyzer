@@ -298,6 +298,7 @@ pub(super) fn opt_where_clause(p: &mut Parser<'_>) {
             || p.at_contextual_kw(T![opens_invariants])
             || p.at_contextual_kw(T![no_unwind])
             || p.at_contextual_kw(T![allocates])
+            || p.at_contextual_kw(T![deallocates])
             || p.at_contextual_kw(T![encapsulates])
     }
 }

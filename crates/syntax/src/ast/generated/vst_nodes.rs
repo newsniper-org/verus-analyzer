@@ -228,6 +228,7 @@ pub struct AssumeSpecification {
     pub opens_invariants_clause: Option<Box<OpensInvariantsClause>>,
     pub no_unwind_clause: Option<Box<NoUnwindClause>>,
     pub allocates_clause: Option<Box<AllocatesClause>>,
+    pub deallocates_clause: Option<Box<DeallocatesClause>>,
     pub encapsulates_clause: Option<Box<EncapsulatesClause>>,
     pub semicolon_token: bool,
     pub cst: Option<super::nodes::AssumeSpecification>,
@@ -480,6 +481,7 @@ pub struct ClosureExpr {
     pub opens_invariants_clause: Option<Box<OpensInvariantsClause>>,
     pub no_unwind_clause: Option<Box<NoUnwindClause>>,
     pub allocates_clause: Option<Box<AllocatesClause>>,
+    pub deallocates_clause: Option<Box<DeallocatesClause>>,
     pub body: Box<Expr>,
     pub cst: Option<super::nodes::ClosureExpr>,
 }
@@ -538,6 +540,12 @@ pub struct DataMode {
     pub ghost_token: bool,
     pub tracked_token: bool,
     pub cst: Option<super::nodes::DataMode>,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DeallocatesClause {
+    pub deallocates_token: bool,
+    pub exprs: Vec<Expr>,
+    pub cst: Option<super::nodes::DeallocatesClause>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DecreasesClause {
@@ -672,6 +680,7 @@ pub struct Fn {
     pub opens_invariants_clause: Option<Box<OpensInvariantsClause>>,
     pub no_unwind_clause: Option<Box<NoUnwindClause>>,
     pub allocates_clause: Option<Box<AllocatesClause>>,
+    pub deallocates_clause: Option<Box<DeallocatesClause>>,
     pub encapsulates_clause: Option<Box<EncapsulatesClause>>,
     pub body: Option<Box<BlockExpr>>,
     pub semicolon_token: bool,
@@ -2584,6 +2593,10 @@ impl TryFrom<super::nodes::AssumeSpecification> for AssumeSpecification {
                 Some(it) => Some(Box::new(AllocatesClause::try_from(it)?)),
                 None => None,
             },
+            deallocates_clause: match item.deallocates_clause() {
+                Some(it) => Some(Box::new(DeallocatesClause::try_from(it)?)),
+                None => None,
+            },
             encapsulates_clause: match item.encapsulates_clause() {
                 Some(it) => Some(Box::new(EncapsulatesClause::try_from(it)?)),
                 None => None,
@@ -3204,6 +3217,10 @@ impl TryFrom<super::nodes::ClosureExpr> for ClosureExpr {
                 Some(it) => Some(Box::new(AllocatesClause::try_from(it)?)),
                 None => None,
             },
+            deallocates_clause: match item.deallocates_clause() {
+                Some(it) => Some(Box::new(DeallocatesClause::try_from(it)?)),
+                None => None,
+            },
             body: Box::new(
                 item.body()
                     .ok_or(format!("{}", stringify!(body)))
@@ -3349,6 +3366,20 @@ impl TryFrom<super::nodes::DataMode> for DataMode {
         Ok(Self {
             ghost_token: item.ghost_token().is_some(),
             tracked_token: item.tracked_token().is_some(),
+            cst: Some(item.clone()),
+        })
+    }
+}
+impl TryFrom<super::nodes::DeallocatesClause> for DeallocatesClause {
+    type Error = String;
+    fn try_from(item: super::nodes::DeallocatesClause) -> Result<Self, Self::Error> {
+        Ok(Self {
+            deallocates_token: item.deallocates_token().is_some(),
+            exprs: item
+                .exprs()
+                .into_iter()
+                .map(Expr::try_from)
+                .collect::<Result<Vec<Expr>, String>>()?,
             cst: Some(item.clone()),
         })
     }
@@ -3706,6 +3737,10 @@ impl TryFrom<super::nodes::Fn> for Fn {
             },
             allocates_clause: match item.allocates_clause() {
                 Some(it) => Some(Box::new(AllocatesClause::try_from(it)?)),
+                None => None,
+            },
+            deallocates_clause: match item.deallocates_clause() {
+                Some(it) => Some(Box::new(DeallocatesClause::try_from(it)?)),
                 None => None,
             },
             encapsulates_clause: match item.encapsulates_clause() {
@@ -7588,6 +7623,10 @@ impl std::fmt::Display for AssumeSpecification {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
+        if let Some(it) = &self.deallocates_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
         if let Some(it) = &self.encapsulates_clause {
             s.push_str(&it.to_string());
             s.push_str(" ");
@@ -8424,6 +8463,10 @@ impl std::fmt::Display for ClosureExpr {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
+        if let Some(it) = &self.deallocates_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
         s.push_str(&self.body.to_string());
         s.push_str(" ");
         write!(f, "{s}")
@@ -8603,6 +8646,19 @@ impl std::fmt::Display for DataMode {
             s.push_str(token_ascii(&tmp));
             s.push_str(" ");
         }
+        write!(f, "{s}")
+    }
+}
+impl std::fmt::Display for DeallocatesClause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+        if self.deallocates_token {
+            let mut tmp = stringify!(deallocates_token).to_string();
+            tmp.truncate(tmp.len() - 6);
+            s.push_str(token_ascii(&tmp));
+            s.push_str(" ");
+        }
+        s.push_str(&self.exprs.iter().map(|it| it.to_string()).collect::<Vec<String>>().join(" "));
         write!(f, "{s}")
     }
 }
@@ -9004,6 +9060,10 @@ impl std::fmt::Display for Fn {
             s.push_str(" ");
         }
         if let Some(it) = &self.allocates_clause {
+            s.push_str(&it.to_string());
+            s.push_str(" ");
+        }
+        if let Some(it) = &self.deallocates_clause {
             s.push_str(&it.to_string());
             s.push_str(" ");
         }
@@ -13847,6 +13907,7 @@ impl AssumeSpecification {
             opens_invariants_clause: None,
             no_unwind_clause: None,
             allocates_clause: None,
+            deallocates_clause: None,
             encapsulates_clause: None,
             semicolon_token: true,
             cst: None,
@@ -14142,6 +14203,7 @@ impl ClosureExpr {
             opens_invariants_clause: None,
             no_unwind_clause: None,
             allocates_clause: None,
+            deallocates_clause: None,
             body: Box::new(body.into()),
             cst: None,
         }
@@ -14203,6 +14265,9 @@ impl ContinueExpr {
 }
 impl DataMode {
     pub fn new() -> Self { Self { ghost_token: false, tracked_token: false, cst: None } }
+}
+impl DeallocatesClause {
+    pub fn new() -> Self { Self { deallocates_token: true, exprs: vec![], cst: None } }
 }
 impl DecreasesClause {
     pub fn new() -> Self { Self { decreases_token: true, exprs: vec![], cst: None } }
@@ -14346,6 +14411,7 @@ impl Fn {
             opens_invariants_clause: None,
             no_unwind_clause: None,
             allocates_clause: None,
+            deallocates_clause: None,
             encapsulates_clause: None,
             body: None,
             semicolon_token: false,

@@ -143,6 +143,7 @@ pub enum SyntaxKind {
     CHOOSE_KW,
     CLOBBER_ABI_KW,
     CLOSED_KW,
+    DEALLOCATES_KW,
     DECREASES_KW,
     DEFAULT_ENSURES_KW,
     DEFAULT_KW,
@@ -283,6 +284,7 @@ pub enum SyntaxKind {
     CONST_PARAM,
     CONTINUE_EXPR,
     DATA_MODE,
+    DEALLOCATES_CLAUSE,
     DECREASES_CLAUSE,
     DEFAULT_ENSURES_CLAUSE,
     DEREF_PAT,
@@ -517,6 +519,7 @@ impl SyntaxKind {
             | CONST_PARAM
             | CONTINUE_EXPR
             | DATA_MODE
+            | DEALLOCATES_CLAUSE
             | DECREASES_CLAUSE
             | DEFAULT_ENSURES_CLAUSE
             | DEREF_PAT
@@ -817,6 +820,7 @@ impl SyntaxKind {
             CHOOSE_KW => "choose",
             CLOBBER_ABI_KW => "clobber_abi",
             CLOSED_KW => "closed",
+            DEALLOCATES_KW => "deallocates",
             DECREASES_KW => "decreases",
             DEFAULT_KW => "default",
             DEFAULT_ENSURES_KW => "default_ensures",
@@ -978,6 +982,7 @@ impl SyntaxKind {
             CHOOSE_KW => true,
             CLOBBER_ABI_KW => true,
             CLOSED_KW => true,
+            DEALLOCATES_KW => true,
             DECREASES_KW => true,
             DEFAULT_KW => true,
             DEFAULT_ENSURES_KW => true,
@@ -1127,6 +1132,7 @@ impl SyntaxKind {
             CHOOSE_KW => true,
             CLOBBER_ABI_KW => true,
             CLOSED_KW => true,
+            DEALLOCATES_KW => true,
             DECREASES_KW => true,
             DEFAULT_KW => true,
             DEFAULT_ENSURES_KW => true,
@@ -1350,6 +1356,7 @@ impl SyntaxKind {
             "choose" => CHOOSE_KW,
             "clobber_abi" => CLOBBER_ABI_KW,
             "closed" => CLOSED_KW,
+            "deallocates" => DEALLOCATES_KW,
             "decreases" => DECREASES_KW,
             "default" => DEFAULT_KW,
             "default_ensures" => DEFAULT_ENSURES_KW,
@@ -1591,6 +1598,7 @@ macro_rules ! T_ {
     [choose] => { $ crate :: SyntaxKind :: CHOOSE_KW };
     [clobber_abi] => { $ crate :: SyntaxKind :: CLOBBER_ABI_KW };
     [closed] => { $ crate :: SyntaxKind :: CLOSED_KW };
+    [deallocates] => { $ crate :: SyntaxKind :: DEALLOCATES_KW };
     [decreases] => { $ crate :: SyntaxKind :: DECREASES_KW };
     [default] => { $ crate :: SyntaxKind :: DEFAULT_KW };
     [default_ensures] => { $ crate :: SyntaxKind :: DEFAULT_ENSURES_KW };

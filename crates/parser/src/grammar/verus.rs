@@ -34,6 +34,7 @@ fn at_clause_block(p: &Parser<'_>) -> bool {
             T![opens_invariants],
             T![no_unwind],
             T![allocates],
+            T![deallocates],
             T![encapsulates],
             T![invariant],
             T![invariant_except_break],
@@ -61,6 +62,7 @@ fn nth_at_contract_boundary(p: &Parser<'_>, n: usize) -> bool {
         || p.nth_at_contextual_kw(n, T![opens_invariants])
         || p.nth_at_contextual_kw(n, T![no_unwind])
         || p.nth_at_contextual_kw(n, T![allocates])
+        || p.nth_at_contextual_kw(n, T![deallocates])
         || p.nth_at_contextual_kw(n, T![encapsulates])
         || p.nth_at_contextual_kw(n, T![invariant])
         || p.nth_at_contextual_kw(n, T![invariant_except_break])
@@ -475,6 +477,14 @@ pub(super) fn allocates(p: &mut Parser<'_>) -> CompletedMarker {
     expect_kw(p, T![allocates]);
     expr_list(p);
     m.complete(p, ALLOCATES_CLAUSE)
+}
+
+/// `deallocates n`
+pub(super) fn deallocates(p: &mut Parser<'_>) -> CompletedMarker {
+    let m = p.start();
+    expect_kw(p, T![deallocates]);
+    expr_list(p);
+    m.complete(p, DEALLOCATES_CLAUSE)
 }
 
 /// `encapsulates alloc(a, d)`

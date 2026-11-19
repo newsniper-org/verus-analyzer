@@ -360,6 +360,8 @@ impl AssumeSpecification {
     #[inline]
     pub fn allocates_clause(&self) -> Option<AllocatesClause> { support::child(&self.syntax) }
     #[inline]
+    pub fn deallocates_clause(&self) -> Option<DeallocatesClause> { support::child(&self.syntax) }
+    #[inline]
     pub fn encapsulates_clause(&self) -> Option<EncapsulatesClause> { support::child(&self.syntax) }
     #[inline]
     pub fn ensures_clause(&self) -> Option<EnsuresClause> { support::child(&self.syntax) }
@@ -791,6 +793,8 @@ impl ClosureExpr {
     #[inline]
     pub fn allocates_clause(&self) -> Option<AllocatesClause> { support::child(&self.syntax) }
     #[inline]
+    pub fn deallocates_clause(&self) -> Option<DeallocatesClause> { support::child(&self.syntax) }
+    #[inline]
     pub fn ensures_clause(&self) -> Option<EnsuresClause> { support::child(&self.syntax) }
     #[inline]
     pub fn for_binder(&self) -> Option<ForBinder> { support::child(&self.syntax) }
@@ -912,6 +916,17 @@ impl DataMode {
     pub fn ghost_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![ghost]) }
     #[inline]
     pub fn tracked_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![tracked]) }
+}
+pub struct DeallocatesClause {
+    pub(crate) syntax: SyntaxNode,
+}
+impl DeallocatesClause {
+    #[inline]
+    pub fn exprs(&self) -> AstChildren<Expr> { support::children(&self.syntax) }
+    #[inline]
+    pub fn deallocates_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, T![deallocates])
+    }
 }
 pub struct DecreasesClause {
     pub(crate) syntax: SyntaxNode,
@@ -1090,6 +1105,8 @@ impl Fn {
     pub fn allocates_clause(&self) -> Option<AllocatesClause> { support::child(&self.syntax) }
     #[inline]
     pub fn atomic_spec(&self) -> Option<AtomicSpec> { support::child(&self.syntax) }
+    #[inline]
+    pub fn deallocates_clause(&self) -> Option<DeallocatesClause> { support::child(&self.syntax) }
     #[inline]
     pub fn default_ensures_clause(&self) -> Option<DefaultEnsuresClause> {
         support::child(&self.syntax)
@@ -5101,6 +5118,38 @@ impl Clone for DataMode {
 impl fmt::Debug for DataMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DataMode").field("syntax", &self.syntax).finish()
+    }
+}
+impl AstNode for DeallocatesClause {
+    #[inline]
+    fn kind() -> SyntaxKind
+    where
+        Self: Sized,
+    {
+        DEALLOCATES_CLAUSE
+    }
+    #[inline]
+    fn can_cast(kind: SyntaxKind) -> bool { kind == DEALLOCATES_CLAUSE }
+    #[inline]
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) { Some(Self { syntax }) } else { None }
+    }
+    #[inline]
+    fn syntax(&self) -> &SyntaxNode { &self.syntax }
+}
+impl hash::Hash for DeallocatesClause {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) { self.syntax.hash(state); }
+}
+impl Eq for DeallocatesClause {}
+impl PartialEq for DeallocatesClause {
+    fn eq(&self, other: &Self) -> bool { self.syntax == other.syntax }
+}
+impl Clone for DeallocatesClause {
+    fn clone(&self) -> Self { Self { syntax: self.syntax.clone() } }
+}
+impl fmt::Debug for DeallocatesClause {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DeallocatesClause").field("syntax", &self.syntax).finish()
     }
 }
 impl AstNode for DecreasesClause {
@@ -13093,6 +13142,11 @@ impl std::fmt::Display for ContinueExpr {
     }
 }
 impl std::fmt::Display for DataMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for DeallocatesClause {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

@@ -701,6 +701,9 @@ fn closure_expr(p: &mut Parser<'_>) -> CompletedMarker {
     if p.at_contextual_kw(T![allocates]) {
         verus::allocates(p);
     }
+    if p.at_contextual_kw(T![deallocates]) {
+        verus::deallocates(p);
+    }
     // `forall (|x| #![auto] body)`: quantifier attributes precede the body
     attributes::inner_attrs(p);
     if has_ret_type {
